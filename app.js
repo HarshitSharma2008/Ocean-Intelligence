@@ -15,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 mongoose.connect(
+    process.env.MONGODB_URI ||
     "mongodb://127.0.0.1:27017/ocean_data_visualization"
 )
     .then(() => {
@@ -691,9 +692,14 @@ app.get(
     }
 );
 
-app.listen(8080, () => {
+app.listen(
+    process.env.PORT || 8080,
+    "0.0.0.0",
+    () => {
 
-    console.log(
-        "Server running on http://localhost:8080"
-    );
-});
+        console.log(
+            `Server running on port ${process.env.PORT || 8080}`
+        );
+
+    }
+);
