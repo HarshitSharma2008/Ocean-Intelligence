@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Ocean Intelligence | Login</title>
+
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+
+<body>
+
+    <div class="login-page">
+
+        <div class="underwater-glow"></div>
+
+        <div class="sun-rays"></div>
+
+        <div class="ocean-particles">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="bubble-field">
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+        </div>
+
+        <!-- Moving whales -->
+
+        <div class="whale whale-one">
+            <div class="whale-body"></div>
+            <div class="whale-tail"></div>
+        </div>
+
+        <div class="whale whale-two">
+            <div class="whale-body"></div>
+            <div class="whale-tail"></div>
+        </div>
+
+        <!-- Moving fish -->
+
+        <div class="fish fish-one"></div>
+        <div class="fish fish-two"></div>
+        <div class="fish fish-three"></div>
+
+        <!-- Sea floor -->
+
+        <div class="sea-floor">
+
+            <div class="rock rock-one"></div>
+            <div class="rock rock-two"></div>
+            <div class="rock rock-three"></div>
+
+        </div>
+
+        <!-- Back -->
+
+        <a href="/" class="back-home">
+            ← Back to Ocean Intelligence
+        </a>
+
+        <!-- Login Card -->
+
+        <div class="login-card">
+
+            <div class="card-light"></div>
+
+            <!-- Brand -->
+
+            <div class="brand">
+
+                <div class="brand-icon">
+                    ◈
+                </div>
+
+                <span>
+                    OCEAN<span>INTELLIGENCE</span>
+                </span>
+
+            </div>
+
+            <!-- Heading -->
+
+            <div class="heading">
+
+                <p>
+                    WELCOME BACK
+                </p>
+
+                <h1>
+                    Enter The
+                    <span>Deep</span>
+                </h1>
+
+                <div class="heading-line"></div>
+
+                <p class="subtitle">
+                    Continue your journey beneath the surface.
+                </p>
+
+            </div>
+
+            <!-- Login Form -->
+
+            <form action="/login" method="POST">
+
+                <div class="input-group">
+
+                    <label for="email">
+                        Email Address
+                    </label>
+
+                    <div class="input-box">
+
+                        <span class="input-icon">
+                            @
+                        </span>
+
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="Enter your email"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+                <div class="input-group">
+
+                    <div class="password-label">
+
+                        <label for="password">
+                            Password
+                        </label>
+
+                        <a href="/forgot-password">
+                            Forgot Password?
+                        </a>
+
+                    </div>
+
+                    <div class="input-box">
+
+                        <span class="input-icon">
+                            ◆
+                        </span>
+
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            id="passwordToggle"
+                        >
+                            SHOW
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <label class="remember">
+
+                    <input
+                        type="checkbox"
+                        name="remember"
+                    >
+
+                    <span class="checkmark"></span>
+
+                    Remember me
+
+                </label>
+
+                <button
+                    type="submit"
+                    class="login-btn"
+                >
+
+                    <span class="btn-text">
+                        ENTER OCEAN INTELLIGENCE
+                    </span>
+
+                    <span class="btn-arrow">
+                        →
+                    </span>
+
+                    <div class="button-shine"></div>
+
+                </button>
+
+            </form>
+
+            <!-- Signup -->
+
+            <div class="signup-text">
+
+                Don't have an account?
+
+                <a href="/signup">
+                    Create Account
+                </a>
+
+            </div>
+
+            <div class="secure-text">
+
+                <span>
+                    ◉
+                </span>
+
+                Secure ocean access
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="/js/login.js"></script>
+
+</body>
+
+</html>
+

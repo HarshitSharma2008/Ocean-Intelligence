@@ -1,0 +1,36 @@
+{
+  "12.0000|70.0000|0.00": {
+    "data": {
+      "success": true,
+      "latitude": 12,
+      "longitude": 70,
+      "requestedDepth": 0,
+      "actualDepth": 0.49402499198913574,
+      "temperature": 28.062227234244347,
+      "salinity": 36.45588546060026,
+      "u": 0.051881466060876846,
+      "v": 0.13367107138037682,
+      "current": 0.1433863377194763,
+      "direction": "N",
+      "source": "Copernicus Marine Global Ocean Physics Reanalysis"
+    },
+    "time": 1788517840282
+  },
+  "15.0000|72.0000|0.00": {
+    "data": {
+      "success": true,
+      "latitude": 15,
+      "longitude": 72,
+      "requestedDepth": 0,
+      "actualDepth": 0.49402499198913574,
+      "temperature": 27.9860530346632,
+      "salinity": 36.18427072651684,
+      "u": -0.18005920574069023,
+      "v": -0.07568590342998505,
+      "current": 0.19531941416556942,
+      "direction": "SW",
+      "source": "Copernicus Marine Global Ocean Physics Reanalysis"
+    },
+    "time": 1788517999832
+  }
+}
