@@ -11,6 +11,11 @@ function initDashboard() {
 
     if (typeof THREE === "undefined") {
         console.error("Three.js is not loaded.");
+
+        if (loadingScreen) {
+            loadingScreen.classList.add("hidden");
+        }
+
         return;
     }
 
@@ -19,6 +24,11 @@ function initDashboard() {
 
     if (!canvas) {
         console.error("oceanCanvas not found.");
+
+        if (loadingScreen) {
+            loadingScreen.classList.add("hidden");
+        }
+
         return;
     }
 
@@ -39,12 +49,31 @@ function initDashboard() {
         7.4
     );
 
-    const renderer =
-        new THREE.WebGLRenderer({
-            canvas: canvas,
-            antialias: true,
-            alpha: true
-        });
+    let renderer;
+
+    try {
+
+        renderer =
+            new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true,
+                alpha: true
+            });
+
+    }
+    catch (error) {
+
+        console.error(
+            "WebGL renderer could not be created:",
+            error
+        );
+
+        if (loadingScreen) {
+            loadingScreen.classList.add("hidden");
+        }
+
+        return;
+    }
 
     renderer.setSize(
         window.innerWidth,
@@ -402,8 +431,23 @@ function initDashboard() {
     let longitude = 70;
     let currentDepth = 0;
 
-    let loadingData =
-        false;
+    let loadingData = false;
+    let underwaterMode = false;
+    let diveInProgress = false;
+    let diverGroup = null;
+
+    let focusAnimationId = null;
+
+    let isDragging = false;
+    let previousX = 0;
+    let previousY = 0;
+    let velocityX = 0;
+    let velocityY = 0;
+    let autoRotate = true;
+    let targetCameraZ = 7.4;
+
+    const diverStartY = 2.4;
+    const diverTargetY = -2.6;
 
     function latLonToVector(
         lat,
@@ -782,6 +826,7 @@ function initDashboard() {
                     inset 0 1px 0 rgba(255,255,255,.04);
                 backdrop-filter: blur(14px);
                 font-family: inherit;
+                pointer-events: none;
             }
 
             .oi-header {
@@ -983,7 +1028,7 @@ function initDashboard() {
         }
 
         const intelligence =
-            data.intelligence || {};
+            data?.intelligence || {};
 
         const condition =
             intelligence.condition || {};
@@ -991,28 +1036,36 @@ function initDashboard() {
         const anomaly =
             intelligence.anomaly || {};
 
-        conditionCard.className =
-            "oi-card";
+        if (conditionCard) {
+            conditionCard.className =
+                "oi-card";
+        }
 
-        anomalyCard.className =
-            "oi-card";
+        if (anomalyCard) {
+            anomalyCard.className =
+                "oi-card";
+        }
 
         if (condition.status) {
 
             conditionStatus.textContent =
                 condition.status;
 
-            conditionMessage.textContent =
-                condition.message ||
-                "Marine parameters evaluated.";
+            if (conditionMessage) {
+                conditionMessage.textContent =
+                    condition.message ||
+                    "Marine parameters evaluated.";
+            }
 
-            conditionCard.classList.add(
-                "condition-" +
-                String(
-                    condition.level ||
-                    "normal"
-                ).toLowerCase()
-            );
+            if (conditionCard) {
+                conditionCard.classList.add(
+                    "condition-" +
+                    String(
+                        condition.level ||
+                        "normal"
+                    ).toLowerCase()
+                );
+            }
 
         }
         else {
@@ -1020,8 +1073,10 @@ function initDashboard() {
             conditionStatus.textContent =
                 "UNAVAILABLE";
 
-            conditionMessage.textContent =
-                "Insufficient data for assessment.";
+            if (conditionMessage) {
+                conditionMessage.textContent =
+                    "Insufficient data for assessment.";
+            }
         }
 
         if (anomaly.status) {
@@ -1029,25 +1084,30 @@ function initDashboard() {
             anomalyStatus.textContent =
                 anomaly.status;
 
-            anomalyMessage.textContent =
-                anomaly.message ||
-                "Environmental screening completed.";
-
-            if (
-                anomaly.detected === true
-            ) {
-
-                anomalyCard.classList.add(
-                    "anomaly-detected"
-                );
-
+            if (anomalyMessage) {
+                anomalyMessage.textContent =
+                    anomaly.message ||
+                    "Environmental screening completed.";
             }
-            else {
 
-                anomalyCard.classList.add(
-                    "anomaly-stable"
-                );
+            if (anomalyCard) {
 
+                if (
+                    anomaly.detected === true
+                ) {
+
+                    anomalyCard.classList.add(
+                        "anomaly-detected"
+                    );
+
+                }
+                else {
+
+                    anomalyCard.classList.add(
+                        "anomaly-stable"
+                    );
+
+                }
             }
 
         }
@@ -1056,8 +1116,10 @@ function initDashboard() {
             anomalyStatus.textContent =
                 "UNAVAILABLE";
 
-            anomalyMessage.textContent =
-                "Insufficient data for screening.";
+            if (anomalyMessage) {
+                anomalyMessage.textContent =
+                    "Insufficient data for screening.";
+            }
         }
     }
 
@@ -1170,7 +1232,6 @@ function initDashboard() {
         }
 
         if (waterType) {
-
             waterType.textContent =
                 zone;
         }
@@ -1184,19 +1245,16 @@ function initDashboard() {
             );
 
         if (depthSlider) {
-
             depthSlider.value =
                 value;
         }
 
         if (depthValue) {
-
             depthValue.textContent =
                 value;
         }
 
         if (currentDepthElement) {
-
             currentDepthElement.textContent =
                 value;
         }
@@ -1583,6 +1641,11 @@ function initDashboard() {
                     ) + "%";
             }
 
+            /*
+             * IMPORTANT:
+             * Exact selected depth ka intelligence
+             * yahin update hota hai.
+             */
             updateIntelligence(
                 data
             );
@@ -1824,9 +1887,6 @@ function initDashboard() {
         return "Ocean Point";
     }
 
-    let focusAnimationId =
-        null;
-
     function focusOnCoordinates() {
 
         if (focusAnimationId) {
@@ -1943,27 +2003,6 @@ function initDashboard() {
                 animateFocus
             );
     }
-
-    let isDragging =
-        false;
-
-    let previousX =
-        0;
-
-    let previousY =
-        0;
-
-    let velocityX =
-        0;
-
-    let velocityY =
-        0;
-
-    let autoRotate =
-        true;
-
-    let targetCameraZ =
-        7.4;
 
     async function locatePoint() {
 
@@ -2090,7 +2129,13 @@ function initDashboard() {
 
         locateButton.addEventListener(
             "click",
-            locatePoint
+            event => {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                locatePoint();
+            }
         );
     }
 
@@ -2104,6 +2149,8 @@ function initDashboard() {
                     event.key ===
                     "Enter"
                 ) {
+
+                    event.preventDefault();
 
                     locatePoint();
                 }
@@ -2121,6 +2168,8 @@ function initDashboard() {
                     event.key ===
                     "Enter"
                 ) {
+
+                    event.preventDefault();
 
                     locatePoint();
                 }
@@ -2228,9 +2277,26 @@ function initDashboard() {
             previousY =
                 event.clientY;
 
-            canvas.setPointerCapture(
-                event.pointerId
-            );
+            velocityX =
+                0;
+
+            velocityY =
+                0;
+
+            try {
+
+                canvas.setPointerCapture(
+                    event.pointerId
+                );
+
+            }
+            catch (error) {
+
+                console.log(
+                    "Pointer capture unavailable:",
+                    error
+                );
+            }
         }
     );
 
@@ -2257,10 +2323,12 @@ function initDashboard() {
                 event.clientY;
 
             earthGroup.rotation.y +=
-                dx * 0.006;
+                dx *
+                0.006;
 
             earthGroup.rotation.x +=
-                dy * 0.006;
+                dy *
+                0.006;
 
             earthGroup.rotation.x =
                 THREE.MathUtils.clamp(
@@ -2270,10 +2338,12 @@ function initDashboard() {
                 );
 
             velocityY =
-                dx * 0.0007;
+                dx *
+                0.0007;
 
             velocityX =
-                dy * 0.0007;
+                dy *
+                0.0007;
         }
     );
 
@@ -2334,7 +2404,10 @@ function initDashboard() {
 
         zoomButton.addEventListener(
             "click",
-            () => {
+            event => {
+
+                event.preventDefault();
+                event.stopPropagation();
 
                 if (underwaterMode) {
                     return;
@@ -2532,21 +2605,6 @@ function initDashboard() {
             bubble
         );
     }
-
-    let underwaterMode =
-        false;
-
-    let diveInProgress =
-        false;
-
-    let diverGroup =
-        null;
-
-    const diverStartY =
-        2.4;
-
-    const diverTargetY =
-        -2.6;
 
     function createDiver() {
 
@@ -3144,6 +3202,17 @@ function initDashboard() {
         );
     }
 
+    /*
+     * =========================================================
+     * FIXED DIVE FUNCTION
+     * =========================================================
+     *
+     * Selected depth is preserved.
+     * Intermediate 250m readings no longer overwrite
+     * the selected depth or Ocean Analysis.
+     *
+     * Final analysis is fetched using the EXACT target depth.
+     */
     async function performDive() {
 
         if (diveInProgress) {
@@ -3153,218 +3222,257 @@ function initDashboard() {
         diveInProgress =
             true;
 
-        if (currentDepth === 0) {
+        try {
 
+            /*
+             * Save the user's selected depth FIRST.
+             */
+            let targetDepth =
+                THREE.MathUtils.clamp(
+                    Math.round(currentDepth),
+                    0,
+                    6000
+                );
+
+            /*
+             * If Dive is pressed at 0m,
+             * use the existing 500m default.
+             */
+            if (targetDepth === 0) {
+
+                targetDepth =
+                    500;
+            }
+
+            /*
+             * NEVER overwrite selected target
+             * with 250 / 500 / 750 etc.
+             */
             currentDepth =
-                500;
+                targetDepth;
 
             updateDepthUI();
-        }
 
-        const targetDepth =
-            Math.min(
-                6000,
-                Math.max(
-                    1,
-                    Math.round(
-                        currentDepth
-                    )
-                )
-            );
+            autoRotate =
+                false;
 
-        autoRotate =
-            false;
+            isDragging =
+                false;
 
-        isDragging =
-            false;
+            focusOnCoordinates();
 
-        focusOnCoordinates();
+            targetCameraZ =
+                5.7;
 
-        targetCameraZ =
-            5.7;
+            enterUnderwater();
 
-        enterUnderwater();
+            if (diverGroup) {
 
-        if (diverGroup) {
+                diverGroup.position.y =
+                    diverStartY;
+            }
 
-            diverGroup.position.y =
-                diverStartY;
-        }
+            /*
+             * Intermediate points are ONLY for
+             * diver animation.
+             *
+             * They do NOT update Ocean Analysis.
+             */
+            const depthStep =
+                250;
 
-        const depthStep =
-            250;
+            const depthPoints =
+                [];
 
-        const depthPoints =
-            [];
+            let depth =
+                0;
 
-        let depth =
-            0;
-
-        while (
-            depth <
-            targetDepth
-        ) {
-
-            depth +=
-                depthStep;
-
-            if (
-                depth >
+            while (
+                depth <
                 targetDepth
             ) {
 
-                depth =
-                    targetDepth;
+                depth +=
+                    depthStep;
+
+                if (
+                    depth >
+                    targetDepth
+                ) {
+
+                    depth =
+                        targetDepth;
+                }
+
+                depthPoints.push(
+                    depth
+                );
             }
 
-            depthPoints.push(
-                depth
-            );
-        }
+            /*
+             * Animate diver through depth.
+             * Analysis is intentionally NOT changed here.
+             */
+            for (
+                let i = 0;
+                i < depthPoints.length;
+                i++
+            ) {
 
-        for (
-            let i = 0;
-            i < depthPoints.length;
-            i++
-        ) {
+                const depthPoint =
+                    depthPoints[i];
 
-            const depthPoint =
-                depthPoints[i];
+                /*
+                 * Keep UI locked to selected depth.
+                 */
+                currentDepth =
+                    targetDepth;
 
+                updateDepthUI();
+
+                await animateDiverToDepth(
+                    depthPoint,
+                    targetDepth,
+                    Math.max(
+                        900,
+                        Math.min(
+                            3500,
+                            (
+                                targetDepth /
+                                1000
+                            ) * 650
+                        )
+                    )
+                );
+            }
+
+            /*
+             * =================================================
+             * EXACT FINAL DEPTH DATA
+             * =================================================
+             *
+             * This is the important part.
+             *
+             * Example:
+             * User selects 6000m
+             * API request = depth=6000
+             *
+             * User selects 2500m
+             * API request = depth=2500
+             *
+             * User selects 1000m
+             * API request = depth=1000
+             */
             currentDepth =
-                depthPoint;
+                targetDepth;
 
             updateDepthUI();
 
-            const reading =
-                await fetchDepthReading(
-                    depthPoint
+            /*
+             * fetchOceanData() does:
+             *
+             * 1. Exact depth API call
+             * 2. Temperature update
+             * 3. Salinity update
+             * 4. Current update
+             * 5. Direction update
+             * 6. Data confidence update
+             * 7. Ocean Analysis update
+             *
+             * So Ocean Analysis now corresponds
+             * to the exact selected depth.
+             */
+            const finalReading =
+                await fetchOceanData(
+                    targetDepth
                 );
 
-            if (reading) {
-
-                const temperature =
-                    Number(
-                        reading.temperature
-                    );
-
-                const salinity =
-                    Number(
-                        reading.salinity
-                    );
-
-                const current =
-                    Number(
-                        reading.current
-                    );
-
-                if (temperatureValue) {
-
-                    temperatureValue.textContent =
-                        Number.isFinite(
-                            temperature
-                        )
-                            ? temperature.toFixed(
-                                2
-                            )
-                            : "NO DATA";
-                }
-
-                if (salinityValue) {
-
-                    salinityValue.textContent =
-                        Number.isFinite(
-                            salinity
-                        )
-                            ? salinity.toFixed(
-                                2
-                            )
-                            : "NO DATA";
-                }
-
-                if (currentValue) {
-
-                    currentValue.textContent =
-                        Number.isFinite(
-                            current
-                        )
-                            ? current.toFixed(
-                                2
-                            )
-                            : "NO DATA";
-                }
-
-                if (directionValue) {
-
-                    directionValue.textContent =
-                        reading.direction ||
-                        "--";
-                }
-
-                if (dataConfidence) {
-
-                    dataConfidence.textContent =
-                        calculateDataConfidence(
-                            reading
-                        ) +
-                        "%";
-                }
+            /*
+             * Explicitly update intelligence again
+             * using ONLY the final selected-depth response.
+             */
+            if (finalReading) {
 
                 updateIntelligence(
-                    reading
+                    finalReading
                 );
 
                 updateZone();
+
+            }
+            else {
+
+                resetIntelligence();
+
+                if (conditionStatus) {
+
+                    conditionStatus.textContent =
+                        "NO DATA";
+                }
+
+                if (conditionMessage) {
+
+                    conditionMessage.textContent =
+                        "No analysis data available at selected depth.";
+                }
+
+                if (anomalyStatus) {
+
+                    anomalyStatus.textContent =
+                        "NO DATA";
+                }
+
+                if (anomalyMessage) {
+
+                    anomalyMessage.textContent =
+                        "No environmental data available at selected depth.";
+                }
             }
 
-            await animateDiverToDepth(
-                depthPoint,
-                targetDepth,
-                Math.max(
-                    450,
-                    Math.min(
-                        900,
-                        (
-                            targetDepth /
-                            1000
-                        ) * 650
-                    )
-                )
-            );
+            /*
+             * Lock selected depth one final time.
+             */
+            currentDepth =
+                targetDepth;
+
+            updateDepthUI();
+
+            if (explorationStatus) {
+
+                explorationStatus.textContent =
+                    "UNDERWATER EXPLORATION";
+            }
+
         }
+        catch (error) {
 
-        currentDepth =
-            targetDepth;
-
-        updateDepthUI();
-
-        const finalReading =
-            await fetchOceanData(
-                targetDepth
+            console.error(
+                "Dive error:",
+                error
             );
 
-        if (finalReading) {
+            if (explorationStatus) {
 
-            updateIntelligence(
-                finalReading
-            );
+                explorationStatus.textContent =
+                    "DIVE ERROR";
+            }
+
         }
+        finally {
 
-        if (explorationStatus) {
-
-            explorationStatus.textContent =
-                "UNDERWATER EXPLORATION";
+            diveInProgress =
+                false;
         }
-
-        diveInProgress =
-            false;
     }
 
     if (diveButton) {
 
         diveButton.addEventListener(
             "click",
-            async () => {
+            async event => {
+
+                event.preventDefault();
+                event.stopPropagation();
 
                 await performDive();
             }
@@ -3375,7 +3483,10 @@ function initDashboard() {
 
         resetButton.addEventListener(
             "click",
-            () => {
+            event => {
+
+                event.preventDefault();
+                event.stopPropagation();
 
                 diveInProgress =
                     false;
@@ -3394,6 +3505,13 @@ function initDashboard() {
                     0,
                     0,
                     0
+                );
+
+                earthGroup.quaternion.set(
+                    0,
+                    0,
+                    0,
+                    1
                 );
 
                 targetCameraZ =
@@ -3452,9 +3570,9 @@ function initDashboard() {
                     longitude
                 );
 
-                fetchOceanData();
-
                 exitUnderwater();
+
+                fetchOceanData();
             }
         );
     }
@@ -3470,7 +3588,8 @@ function initDashboard() {
 
         if (
             autoRotate &&
-            !isDragging
+            !isDragging &&
+            !underwaterMode
         ) {
 
             earthGroup.rotation.y +=
@@ -3640,6 +3759,12 @@ function initDashboard() {
                         0.0002;
                 }
             );
+
+        }
+        else {
+
+            oceanLight.intensity =
+                0.65;
         }
 
         camera.position.z +=

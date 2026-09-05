@@ -12,8 +12,12 @@
 
 <body>
 
+    <!-- LOADING SCREEN -->
+
     <div id="loadingScreen" class="loading-screen">
+
         <div class="loading-content">
+
             <div class="loader-ring"></div>
 
             <div class="loading-title">
@@ -27,49 +31,104 @@
             <div class="loading-text">
                 LOADING MARINE DATA
             </div>
+
+            <div class="loading-progress">
+                <span></span>
+            </div>
+
         </div>
+
     </div>
+
+
+    <!-- BACKGROUND -->
 
     <div class="background-glow"></div>
 
+
+    <!-- THREE JS GLOBE -->
+
     <canvas id="oceanCanvas"></canvas>
+
+
+    <!-- DASHBOARD -->
 
     <div class="dashboard">
 
-        <div class="topbar">
+
+        <!-- =================================================
+             TOP BAR
+        ================================================== -->
+
+        <header class="topbar">
 
             <div class="brand">
-                <div class="brand-icon">◉</div>
+
+                <div class="brand-icon">
+                    ◉
+                </div>
 
                 <div class="brand-text">
-                    <strong>OCEAN INTELLIGENCE</strong>
-                    <span>VISUALIZATION SYSTEM</span>
+
+                    <strong>
+                        OCEAN INTELLIGENCE
+                    </strong>
+
+                    <span>
+                        VISUALIZATION SYSTEM
+                    </span>
+
                 </div>
+
             </div>
+
 
             <div class="top-center">
                 INTERACTIVE MARINE DATA PLATFORM
             </div>
 
+
             <div class="user-area">
 
                 <div class="live-status">
+
                     <span></span>
+
                     SYSTEM ONLINE
+
                 </div>
+
 
                 <div class="profile">
 
                     <div class="profile-avatar">
-                        <%= userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase() : "U" %>
+
+                        <%= (typeof userName !== "undefined" && userName)
+                            ? userName.split(" ").map(n => n[0]).join("").toUpperCase()
+                            : "U" %>
+
                     </div>
+
 
                     <div class="profile-info">
-                        <strong><%= userName || "USER" %></strong>
-                        <small>DATA ANALYSIS</small>
+
+                        <strong>
+                            <%= (typeof userName !== "undefined" && userName)
+                                ? userName
+                                : "USER" %>
+                        </strong>
+
+                        <small>
+                            DATA ANALYSIS
+                        </small>
+
                     </div>
 
-                    <a href="/logout" class="logout-button">
+
+                    <a
+                        href="/logout"
+                        class="logout-button"
+                    >
                         LOGOUT
                     </a>
 
@@ -77,272 +136,520 @@
 
             </div>
 
-        </div>
+        </header>
 
-        <div class="left-panel">
 
-            <div class="depth-section">
+        <!-- =================================================
+             MAIN DASHBOARD
+        ================================================== -->
 
-                <div class="depth-heading">
-                    <span>DEPTH CONTROL</span>
+        <main class="dashboard-main">
 
-                    <strong>
-                        <span id="depthValue">0</span>m
-                    </strong>
+
+            <!-- =================================================
+                 LEFT TOP - DEPTH CONTROL
+            ================================================== -->
+
+            <section class="left-panel">
+
+                <div class="depth-section">
+
+                    <div class="panel-label">
+                        OCEAN EXPLORATION
+                    </div>
+
+
+                    <div class="depth-heading">
+
+                        <span>
+                            DEPTH CONTROL
+                        </span>
+
+                        <strong>
+
+                            <span id="depthValue">
+                                0
+                            </span>m
+
+                        </strong>
+
+                    </div>
+
+
+                    <input
+                        type="range"
+                        id="depthSlider"
+                        min="0"
+                        max="6000"
+                        value="0"
+                        step="1"
+                    >
+
+
+                    <div class="depth-range">
+
+                        <span>
+                            0m
+                        </span>
+
+                        <span>
+                            6000m
+                        </span>
+
+                    </div>
+
                 </div>
 
-                <input
-                    type="range"
-                    id="depthSlider"
-                    min="0"
-                    max="6000"
-                    value="0"
-                    step="1"
+
+                <!-- DIVE BUTTON -->
+
+                <button
+                    id="diveButton"
+                    class="dive-button"
+                    type="button"
                 >
 
-                <div class="depth-range">
-                    <span>0m</span>
-                    <span>6000m</span>
-                </div>
+                    <span class="dive-symbol">
+                        ↓
+                    </span>
 
-            </div>
 
-            <button id="diveButton" class="dive-button">
+                    <div class="dive-text">
 
-                <span class="dive-symbol">↓</span>
+                        <strong>
+                            DIVE
+                        </strong>
 
-                <div>
-                    <strong>DIVE</strong>
-                    <small>EXPLORE UNDERWATER DATA</small>
-                </div>
+                        <small>
+                            EXPLORE UNDERWATER DATA
+                        </small>
 
-                <span class="dive-arrow">→</span>
+                    </div>
 
-            </button>
 
-        </div>
+                    <span class="dive-arrow">
+                        →
+                    </span>
 
-        <div class="globe-title">
-
-            <span>LIVE MARINE ENVIRONMENT</span>
-
-            <h1>OCEAN INTELLIGENCE</h1>
-
-            <p>
-                INTERACTIVE MARINE DATA VISUALIZATION
-            </p>
-
-        </div>
-
-        <div class="coordinate-panel">
-
-            <div class="coordinate-title">
-
-                <span class="coordinate-icon">⌖</span>
-
-                <div>
-                    <strong>SELECT LOCATION</strong>
-                    <small>ENTER COORDINATES TO EXPLORE OCEAN DATA</small>
-                </div>
-
-            </div>
-
-            <div class="coordinate-fields">
-
-                <div class="field">
-
-                    <label>LATITUDE</label>
-
-                    <input
-                        type="number"
-                        id="latInput"
-                        value="12"
-                        min="-90"
-                        max="90"
-                        step="0.01"
-                    >
-
-                </div>
-
-                <div class="field">
-
-                    <label>LONGITUDE</label>
-
-                    <input
-                        type="number"
-                        id="lonInput"
-                        value="70"
-                        min="-180"
-                        max="180"
-                        step="0.01"
-                    >
-
-                </div>
-
-                <button id="locateButton">
-                    LOCATE
                 </button>
 
-            </div>
+            </section>
 
-            <span class="coordinate-hint">
-                USE DECIMAL DEGREES • LATITUDE -90 TO 90 • LONGITUDE -180 TO 180
-            </span>
 
-        </div>
+            <!-- =================================================
+                 CENTER TITLE
+            ================================================== -->
 
-        <div class="location-card">
+            <section class="globe-title">
 
-            <div class="location-header">
+                <span>
+                    LIVE MARINE ENVIRONMENT
+                </span>
 
-                <div>
+                <h1>
+                    OCEAN INTELLIGENCE
+                </h1>
 
-                    <span>OCEAN CONDITIONS</span>
+                <p>
+                    INTERACTIVE MARINE DATA VISUALIZATION
+                </p>
 
-                    <h2 id="locationName">SELECTED LOCATION</h2>
+            </section>
 
-                </div>
 
-            </div>
+            <!-- =================================================
+                 TOP RIGHT - LOCATION SELECTOR
+            ================================================== -->
 
-            <div class="coordinates">
+            <section class="coordinate-panel">
 
-                <div>
-                    <small>LATITUDE</small>
-                    <strong id="currentLat">--</strong>
-                </div>
+                <div class="coordinate-title">
 
-                <div>
-                    <small>LONGITUDE</small>
-                    <strong id="currentLon">--</strong>
-                </div>
+                    <span class="coordinate-icon">
+                        ⌖
+                    </span>
 
-            </div>
 
-            <div class="ocean-data-grid">
+                    <div>
 
-                <div class="ocean-data">
+                        <strong>
+                            SELECT LOCATION
+                        </strong>
 
-                    <span>TEMPERATURE</span>
+                        <small>
+                            ENTER COORDINATES TO EXPLORE OCEAN DATA
+                        </small>
 
-                    <strong>
-                        <span id="temperature">--</span>
-                        <small class="condition-unit">°C</small>
-                    </strong>
-
-                </div>
-
-                <div class="ocean-data">
-
-                    <span>SALINITY</span>
-
-                    <strong>
-                        <span id="salinity">--</span>
-                        <small class="condition-unit">PSU</small>
-                    </strong>
+                    </div>
 
                 </div>
 
-                <div class="ocean-data">
 
-                    <span>OCEAN CURRENT</span>
+                <div class="coordinate-fields">
 
-                    <strong>
-                        <span id="currentSpeed">--</span>
-                        <small class="condition-unit">m/s</small>
-                    </strong>
+
+                    <!-- LATITUDE -->
+
+                    <div class="field">
+
+                        <label for="latInput">
+                            LATITUDE
+                        </label>
+
+                        <input
+                            type="number"
+                            id="latInput"
+                            value="12"
+                            min="-90"
+                            max="90"
+                            step="0.01"
+                        >
+
+                    </div>
+
+
+                    <!-- LONGITUDE -->
+
+                    <div class="field">
+
+                        <label for="lonInput">
+                            LONGITUDE
+                        </label>
+
+                        <input
+                            type="number"
+                            id="lonInput"
+                            value="70"
+                            min="-180"
+                            max="180"
+                            step="0.01"
+                        >
+
+                    </div>
+
+
+                    <!-- LOCATE -->
+
+                    <button
+                        id="locateButton"
+                        type="button"
+                    >
+                        LOCATE
+                    </button>
 
                 </div>
 
-                <div class="ocean-data">
 
-                    <span>CURRENT DIRECTION</span>
+                <span class="coordinate-hint">
 
-                    <strong id="currentDirection">
+                    USE DECIMAL DEGREES •
+                    LATITUDE -90 TO 90 •
+                    LONGITUDE -180 TO 180
+
+                </span>
+
+            </section>
+
+
+            <!-- =================================================
+                 RIGHT SIDE - OCEAN DATA
+            ================================================== -->
+
+            <section class="location-card">
+
+
+                <!-- LOCATION HEADER -->
+
+                <div class="location-header">
+
+                    <div>
+
+                        <span>
+                            OCEAN CONDITIONS
+                        </span>
+
+                        <h2 id="locationName">
+                            SELECTED LOCATION
+                        </h2>
+
+                    </div>
+
+
+                    <div class="live-badge">
+                        LIVE
+                    </div>
+
+                </div>
+
+
+                <!-- LATITUDE + LONGITUDE -->
+
+                <div class="coordinates">
+
+
+                    <div>
+
+                        <small>
+                            LATITUDE
+                        </small>
+
+                        <strong id="currentLat">
+                            --
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <small>
+                            LONGITUDE
+                        </small>
+
+                        <strong id="currentLon">
+                            --
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- OCEAN PARAMETERS -->
+
+                <div class="ocean-data-grid">
+
+
+                    <!-- TEMPERATURE -->
+
+                    <div class="ocean-data">
+
+                        <span>
+                            TEMPERATURE
+                        </span>
+
+                        <strong>
+
+                            <span id="temperature">
+                                --
+                            </span>
+
+                            <small class="condition-unit">
+                                °C
+                            </small>
+
+                        </strong>
+
+                    </div>
+
+
+                    <!-- SALINITY -->
+
+                    <div class="ocean-data">
+
+                        <span>
+                            SALINITY
+                        </span>
+
+                        <strong>
+
+                            <span id="salinity">
+                                --
+                            </span>
+
+                            <small class="condition-unit">
+                                PSU
+                            </small>
+
+                        </strong>
+
+                    </div>
+
+
+                    <!-- OCEAN CURRENT -->
+
+                    <div class="ocean-data">
+
+                        <span>
+                            OCEAN CURRENT
+                        </span>
+
+                        <strong>
+
+                            <span id="currentSpeed">
+                                --
+                            </span>
+
+                            <small class="condition-unit">
+                                m/s
+                            </small>
+
+                        </strong>
+
+                    </div>
+
+
+                    <!-- CURRENT DIRECTION -->
+
+                    <div class="ocean-data">
+
+                        <span>
+                            CURRENT DIRECTION
+                        </span>
+
+                        <strong id="currentDirection">
+                            --
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- DATA CONFIDENCE -->
+
+                <div class="confidence">
+
+                    <span class="confidence-dot"></span>
+
+                    <span>
+                        DATA CONFIDENCE
+                    </span>
+
+                    <strong id="dataConfidence">
                         --
                     </strong>
 
                 </div>
 
-            </div>
+            </section>
 
-            <div class="confidence">
 
-                <span class="confidence-dot"></span>
+            <!-- =================================================
+                 DEPTH + OCEAN ZONE
+            ================================================== -->
 
-                DATA CONFIDENCE
+            <section class="right-stats">
 
-                <strong id="dataConfidence">--</strong>
 
-            </div>
+                <!-- CURRENT DEPTH -->
 
-        </div>
+                <div class="stat-card">
 
-        <div class="right-stats">
+                    <span>
+                        CURRENT DEPTH
+                    </span>
 
-            <div class="stat-card">
+                    <strong>
 
-                <span>CURRENT DEPTH</span>
+                        <span id="currentDepth">
+                            0
+                        </span>m
 
-                <strong>
-                    <span id="currentDepth">0</span>m
-                </strong>
+                    </strong>
 
-                <small>SELECTED OCEAN DEPTH</small>
+                    <small>
+                        SELECTED OCEAN DEPTH
+                    </small>
 
-            </div>
+                </div>
 
-            <div class="stat-card">
 
-                <span>WATER TYPE</span>
+                <!-- OCEAN ZONE -->
 
-                <strong id="waterType">
-                    SURFACE
-                </strong>
+                <div class="stat-card">
 
-                <small>OCEAN LAYER</small>
+                    <span>
+                        OCEAN ZONE
+                    </span>
 
-            </div>
+                    <strong id="waterType">
+                        SURFACE
+                    </strong>
 
-        </div>
+                    <small>
+                        OCEAN LAYER
+                    </small>
 
-        <div class="bottom-bar">
+                </div>
 
-            <div class="system-status">
+            </section>
 
-                <span></span>
 
-                <div>
-                    <strong>OCEAN EXPLORATION ACTIVE</strong>
-                    <small>LIVE DATA CONNECTION</small>
+            <!-- =================================================
+                 BOTTOM BAR
+            ================================================== -->
+
+            <div class="bottom-bar">
+
+
+                <div class="system-status">
+
+                    <span></span>
+
+                    <div>
+
+                        <strong>
+                            OCEAN EXPLORATION ACTIVE
+                        </strong>
+
+                        <small>
+                            LIVE DATA CONNECTION
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div class="view-controls">
+
+                    <button
+                        id="resetButton"
+                        type="button"
+                    >
+                        RESET
+                    </button>
+
+                    <button
+                        id="zoomButton"
+                        type="button"
+                    >
+                        ZOOM
+                    </button>
+
                 </div>
 
             </div>
 
-            <div class="view-controls">
+        </main>
 
-                <button id="resetButton">
-                    RESET
-                </button>
 
-                <button id="zoomButton">
-                    ZOOM
-                </button>
+        <!-- =================================================
+             DIVE OVERLAY
+        ================================================== -->
 
-            </div>
-
-        </div>
-
-        <div id="diveOverlay" class="dive-overlay">
+        <div
+            id="diveOverlay"
+            class="dive-overlay"
+        >
 
             <div class="dive-content">
 
-                <div class="dive-icon">↓</div>
+                <div class="dive-icon">
+                    ↓
+                </div>
 
-                <span>UNDERWATER MODE</span>
+                <span>
+                    UNDERWATER MODE
+                </span>
 
                 <h2>
-                    <span id="diveDepth">0</span>m
+
+                    <span id="diveDepth">
+                        0
+                    </span>m
+
                 </h2>
 
                 <p>
@@ -355,9 +662,18 @@
 
     </div>
 
+
+    <!-- THREE.JS -->
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
+
+    <!-- YOUR EXISTING DASHBOARD JS -->
+
     <script src="/js/dashboard.js"></script>
+
+
+    <!-- LOADING SCREEN -->
 
     <script>
 
@@ -366,15 +682,19 @@
             const loadingScreen =
                 document.getElementById("loadingScreen");
 
-            if (loadingScreen) {
+            if (!loadingScreen) return;
+
+            setTimeout(function () {
+
+                loadingScreen.classList.add("hidden");
 
                 setTimeout(function () {
 
-                    loadingScreen.classList.add("hidden");
+                    loadingScreen.style.display = "none";
 
-                }, 1200);
+                }, 900);
 
-            }
+            }, 1000);
 
         });
 
