@@ -12,7 +12,8 @@ html,
 body {
     width: 100%;
     min-height: 100%;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     font-family: Arial, Helvetica, sans-serif;
     background: #020b16;
     color: #ffffff;
@@ -1617,5 +1618,610 @@ body {
 
     .stat-card > strong {
         font-size: 16px;
+    }
+}
+/* =========================================================
+   OCEAN DEPTH ANALYTICS
+   GRAPH SECTION
+========================================================= */
+
+#oceanAnalyticsSection {
+    position: relative !important;
+
+    width: 100% !important;
+    min-height: 100vh !important;
+
+    margin: 100vh 0 0 0 !important;
+    padding: 90px 6vw 110px !important;
+
+    display: block !important;
+
+    background:
+        radial-gradient(
+            circle at 50% 0%,
+            rgba(0, 150, 255, 0.10),
+            transparent 45%
+        ),
+        linear-gradient(
+            180deg,
+            #020b16 0%,
+            #031321 100%
+        );
+
+    border-top: 1px solid rgba(0, 180, 255, 0.12);
+
+    opacity: 0;
+    transform: translateY(60px);
+
+    transition:
+        opacity 0.8s ease,
+        transform 0.8s ease;
+
+    z-index: 20 !important;
+
+    pointer-events: auto;
+
+    overflow: hidden;
+}
+
+
+/* GRAPH SECTION VISIBLE */
+
+#oceanAnalyticsSection.oag-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   GRAPH HEADER
+========================================================= */
+
+.oag-header {
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto 45px;
+
+    text-align: center;
+}
+
+.oag-kicker {
+    display: block;
+
+    margin-bottom: 10px;
+
+    font-size: 8px;
+    letter-spacing: 3px;
+
+    color: #00bfff;
+}
+
+.oag-title {
+    margin: 0;
+
+    font-size: clamp(22px, 3vw, 34px);
+    font-weight: 400;
+
+    letter-spacing: 3px;
+
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.oag-subtitle {
+    max-width: 650px;
+
+    margin: 12px auto 0;
+
+    font-size: 9px;
+    line-height: 1.7;
+
+    letter-spacing: 1px;
+
+    color: #66879b;
+}
+
+
+/* =========================================================
+   GRAPH GRID
+========================================================= */
+
+.oag-grid {
+    width: 100%;
+    max-width: 1250px;
+
+    margin: 0 auto;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 18px;
+}
+
+
+/* =========================================================
+   GRAPH CARD
+========================================================= */
+
+.oag-card {
+    min-width: 0;
+
+    padding: 20px;
+
+    border:
+        1px solid
+        rgba(0, 180, 255, 0.16);
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(3, 24, 42, 0.90),
+            rgba(2, 13, 25, 0.88)
+        );
+
+    box-shadow:
+        0 15px 45px rgba(0, 0, 0, 0.25),
+        inset 0 0 30px rgba(0, 150, 255, 0.025);
+
+    backdrop-filter: blur(12px);
+
+    overflow: hidden;
+
+    opacity: 0;
+    transform: translateY(35px);
+
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
+}
+
+
+#oceanAnalyticsSection.oag-visible
+.oag-card:nth-child(1) {
+    opacity: 1;
+    transform: translateY(0);
+
+    transition-delay: 0.08s;
+}
+
+
+#oceanAnalyticsSection.oag-visible
+.oag-card:nth-child(2) {
+    opacity: 1;
+    transform: translateY(0);
+
+    transition-delay: 0.18s;
+}
+
+
+#oceanAnalyticsSection.oag-visible
+.oag-card:nth-child(3) {
+    opacity: 1;
+    transform: translateY(0);
+
+    transition-delay: 0.28s;
+}
+
+
+/* =========================================================
+   GRAPH CARD HEADER
+========================================================= */
+
+.oag-card-header {
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    margin-bottom: 18px;
+}
+
+.oag-card-title {
+    min-width: 0;
+}
+
+.oag-card-title span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    font-size: 7px;
+    letter-spacing: 1.5px;
+
+    color: #5d7e91;
+}
+
+.oag-card-title strong {
+    display: block;
+
+    font-size: 13px;
+    font-weight: 400;
+
+    letter-spacing: 1px;
+
+    color: #ffffff;
+}
+
+.oag-unit {
+    flex-shrink: 0;
+
+    padding: 5px 7px;
+
+    border:
+        1px solid
+        rgba(0, 190, 255, 0.18);
+
+    border-radius: 4px;
+
+    font-size: 6px;
+    letter-spacing: 1px;
+
+    color: #6fb9d4;
+
+    background:
+        rgba(0, 150, 220, 0.07);
+}
+
+
+/* =========================================================
+   SVG GRAPH
+========================================================= */
+
+.oag-chart {
+    position: relative;
+
+    width: 100%;
+
+    min-height: 240px;
+
+    overflow: hidden;
+}
+
+.oag-chart svg {
+    display: block;
+
+    width: 100%;
+    height: 240px;
+
+    overflow: visible;
+}
+
+
+/* =========================================================
+   GRAPH AXIS
+========================================================= */
+
+.oag-axis {
+    stroke:
+        rgba(255, 255, 255, 0.10);
+
+    stroke-width: 1;
+}
+
+.oag-grid-line {
+    stroke:
+        rgba(255, 255, 255, 0.055);
+
+    stroke-width: 1;
+}
+
+.oag-axis-label {
+    fill: #557487;
+
+    font-size: 8px;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+}
+
+.oag-value-label {
+    fill: #9fdff2;
+
+    font-size: 8px;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+}
+
+
+/* =========================================================
+   GRAPH LINE
+========================================================= */
+
+.oag-line {
+    fill: none;
+
+    stroke: #00bfff;
+
+    stroke-width: 2.5;
+
+    stroke-linecap: round;
+    stroke-linejoin: round;
+
+    stroke-dasharray: 1200;
+
+    stroke-dashoffset: 1200;
+
+    transition:
+        stroke-dashoffset 1.5s
+        cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
+#oceanAnalyticsSection.oag-visible
+.oag-line {
+    stroke-dashoffset: 0;
+}
+
+
+/* =========================================================
+   GRAPH AREA
+========================================================= */
+
+.oag-area {
+    fill:
+        rgba(0, 191, 255, 0.06);
+
+    opacity: 0;
+
+    transition:
+        opacity 1.2s ease;
+}
+
+
+#oceanAnalyticsSection.oag-visible
+.oag-area {
+    opacity: 1;
+}
+
+
+/* =========================================================
+   GRAPH POINT
+========================================================= */
+
+.oag-point {
+    fill: #020b16;
+
+    stroke: #00bfff;
+
+    stroke-width: 2;
+
+    opacity: 0;
+
+    transform-origin: center;
+
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s ease;
+}
+
+
+#oceanAnalyticsSection.oag-visible
+.oag-point {
+    opacity: 1;
+}
+
+
+/* =========================================================
+   EMPTY GRAPH
+========================================================= */
+
+.oag-empty {
+    width: 100%;
+    min-height: 240px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+
+    color: #4e6d7f;
+
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+
+/* =========================================================
+   DEPTH LEGEND
+========================================================= */
+
+.oag-depth-info {
+    display: flex;
+
+    justify-content: space-between;
+
+    margin-top: 8px;
+
+    font-size: 6px;
+
+    letter-spacing: 0.8px;
+
+    color: #496a7d;
+}
+
+
+/* =========================================================
+   FOOTER NOTE
+========================================================= */
+
+.oag-footer {
+    width: 100%;
+    max-width: 900px;
+
+    margin: 40px auto 0;
+
+    text-align: center;
+
+    font-size: 7px;
+    line-height: 1.7;
+
+    letter-spacing: 0.8px;
+
+    color: #496b7d;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    #oceanAnalyticsSection {
+        margin-top: 100vh !important;
+
+        padding:
+            75px 30px 90px !important;
+    }
+
+    .oag-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 15px;
+    }
+
+    .oag-card:last-child {
+        grid-column: 1 / -1;
+        max-width: 50%;
+        margin: 0 auto;
+        width: 100%;
+    }
+}
+
+
+/* =========================================================
+   SMALL TABLET
+========================================================= */
+
+@media (max-width: 700px) {
+
+    #oceanAnalyticsSection {
+        margin-top: 1200px !important;
+
+        padding:
+            65px 15px 80px !important;
+    }
+
+    .oag-header {
+        margin-bottom: 30px;
+    }
+
+    .oag-title {
+        font-size: 21px;
+
+        letter-spacing: 2px;
+    }
+
+    .oag-subtitle {
+        font-size: 7px;
+
+        line-height: 1.6;
+    }
+
+    .oag-grid {
+        grid-template-columns: 1fr;
+
+        gap: 14px;
+    }
+
+    .oag-card:last-child {
+        grid-column: auto;
+
+        max-width: none;
+    }
+
+    .oag-card {
+        padding: 15px;
+    }
+
+    .oag-chart {
+        min-height: 220px;
+    }
+
+    .oag-chart svg {
+        height: 220px;
+    }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+    #oceanAnalyticsSection {
+        margin-top: 1200px !important;
+
+        padding:
+            55px 10px 70px !important;
+    }
+
+    .oag-kicker {
+        font-size: 6px;
+
+        letter-spacing: 2px;
+    }
+
+    .oag-title {
+        font-size: 18px;
+
+        letter-spacing: 1.5px;
+    }
+
+    .oag-subtitle {
+        font-size: 6px;
+    }
+
+    .oag-card {
+        padding: 13px;
+
+        border-radius: 8px;
+    }
+
+    .oag-card-title strong {
+        font-size: 11px;
+    }
+
+    .oag-chart {
+        min-height: 200px;
+    }
+
+    .oag-chart svg {
+        height: 200px;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 360px) {
+
+    #oceanAnalyticsSection {
+        margin-top: 1180px !important;
+    }
+
+    .oag-title {
+        font-size: 16px;
+    }
+
+    .oag-card-title strong {
+        font-size: 10px;
     }
 }

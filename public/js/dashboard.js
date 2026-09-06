@@ -4542,3 +4542,2692 @@ else {
 
     initDashboard();
 }
+
+
+
+
+
+
+
+
+
+
+
+if (document.readyState === "loading") {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initDashboard,
+        { once: true }
+    );
+
+} else {
+
+    initDashboard();
+
+}
+
+
+/* =========================================================
+   OCEAN ANALYTICS
+   3 GRAPHS IN ONE ROW
+   CLICK / TAP POINT = INLINE DATA POPUP
+   ========================================================= */
+
+(function initOceanAnalyticsSection() {
+
+    if (window.__oceanAnalyticsInitialized) {
+        return;
+    }
+
+    window.__oceanAnalyticsInitialized = true;
+
+
+    /* =========================================================
+       PREVENT DUPLICATE SECTION
+       ========================================================= */
+
+    if (
+        document.getElementById(
+            "oceanAnalyticsSection"
+        )
+    ) {
+        return;
+    }
+
+
+    /* =========================================================
+       CREATE SECTION
+       ========================================================= */
+
+    const section =
+        document.createElement("section");
+
+    section.id =
+        "oceanAnalyticsSection";
+
+
+    section.innerHTML = `
+
+        <div class="oag-container">
+
+            <!-- HEADER -->
+
+            <div class="oag-header">
+
+                <div>
+
+                    <div class="oag-eyebrow">
+                        OCEAN DATA ANALYTICS
+                    </div>
+
+                    <h2 class="oag-title">
+                        Ocean Parameters vs Depth
+                    </h2>
+
+                    <p class="oag-description">
+                        Explore how temperature, salinity and
+                        ocean currents change with depth.
+                        Tap any point to view the complete reading.
+                    </p>
+
+                </div>
+
+
+                <div class="oag-location">
+
+                    <span class="oag-location-label">
+                        LOCATION
+                    </span>
+
+                    <span id="oagLocationValue">
+                        Loading...
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- THREE GRAPHS -->
+
+            <div class="oag-grid">
+
+
+                <!-- TEMPERATURE -->
+
+                <div class="oag-card">
+
+                    <div class="oag-card-header">
+
+                        <div>
+
+                            <div class="oag-card-title">
+                                Temperature
+                            </div>
+
+                            <div class="oag-card-subtitle">
+                                Temperature vs depth
+                            </div>
+
+                        </div>
+
+                        <div class="oag-unit">
+                            °C
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="oag-chart"
+                        id="oagTemperatureChart"
+                    >
+
+                        <div class="oag-loading">
+                            Loading...
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SALINITY -->
+
+                <div class="oag-card">
+
+                    <div class="oag-card-header">
+
+                        <div>
+
+                            <div class="oag-card-title">
+                                Salinity
+                            </div>
+
+                            <div class="oag-card-subtitle">
+                                Salinity vs depth
+                            </div>
+
+                        </div>
+
+                        <div class="oag-unit">
+                            PSU
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="oag-chart"
+                        id="oagSalinityChart"
+                    >
+
+                        <div class="oag-loading">
+                            Loading...
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CURRENT -->
+
+                <div class="oag-card">
+
+                    <div class="oag-card-header">
+
+                        <div>
+
+                            <div class="oag-card-title">
+                                Ocean Current
+                            </div>
+
+                            <div class="oag-card-subtitle">
+                                Current speed vs depth
+                            </div>
+
+                        </div>
+
+                        <div class="oag-unit">
+                            m/s
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="oag-chart"
+                        id="oagCurrentChart"
+                    >
+
+                        <div class="oag-loading">
+                            Loading...
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="oag-hint">
+                ● Click / tap any graph point to inspect
+                the complete reading at that depth.
+            </div>
+
+
+        </div>
+
+    `;
+
+
+    /* =========================================================
+       INSERT AFTER DASHBOARD
+       ========================================================= */
+
+    const dashboard =
+        document.querySelector(
+            ".dashboard"
+        );
+
+
+    if (dashboard) {
+
+        dashboard.insertAdjacentElement(
+            "afterend",
+            section
+        );
+
+    } else {
+
+        document.body.appendChild(
+            section
+        );
+
+    }
+
+
+    /* =========================================================
+       CSS
+       ========================================================= */
+
+    if (
+        !document.getElementById(
+            "oagRuntimeStyles"
+        )
+    ) {
+
+        const style =
+            document.createElement(
+                "style"
+            );
+
+
+        style.id =
+            "oagRuntimeStyles";
+
+
+        style.textContent = `
+
+            /* =================================================
+               MAIN SECTION
+               ================================================= */
+
+            #oceanAnalyticsSection {
+
+                position: relative !important;
+
+                width: 100% !important;
+
+                min-height: 100vh !important;
+
+                margin:
+                    100vh 0 0 0 !important;
+
+                padding:
+                    90px 4vw 110px !important;
+
+                display: block !important;
+
+                background:
+                    linear-gradient(
+                        180deg,
+                        rgba(2,11,22,.98),
+                        rgba(1,18,31,1)
+                    );
+
+                border-top:
+                    1px solid
+                    rgba(80,180,220,.16);
+
+                opacity: 0;
+
+                transform:
+                    translateY(60px);
+
+                transition:
+                    opacity .8s ease,
+                    transform .8s ease;
+
+                z-index: 20 !important;
+
+                pointer-events: auto;
+
+                overflow: visible;
+            }
+
+
+            #oceanAnalyticsSection.oag-visible {
+
+                opacity: 1;
+
+                transform:
+                    translateY(0);
+            }
+
+
+            /* =================================================
+               CONTAINER
+               ================================================= */
+
+            .oag-container {
+
+                width: 100%;
+
+                max-width: 1600px;
+
+                margin:
+                    0 auto;
+            }
+
+
+            /* =================================================
+               HEADER
+               ================================================= */
+
+            .oag-header {
+
+                display: flex;
+
+                justify-content:
+                    space-between;
+
+                align-items:
+                    flex-end;
+
+                gap: 30px;
+
+                margin-bottom: 32px;
+            }
+
+
+            .oag-eyebrow {
+
+                font-size: 12px;
+
+                letter-spacing: 2.5px;
+
+                font-weight: 700;
+
+                opacity: .55;
+
+                margin-bottom: 8px;
+            }
+
+
+            .oag-title {
+
+                margin: 0;
+
+                font-size:
+                    clamp(
+                        28px,
+                        3vw,
+                        44px
+                    );
+
+                line-height: 1.05;
+
+                font-weight: 700;
+            }
+
+
+            .oag-description {
+
+                max-width: 750px;
+
+                margin-top: 12px;
+
+                font-size: 14px;
+
+                line-height: 1.6;
+
+                opacity: .65;
+            }
+
+
+            /* =================================================
+               LOCATION
+               ================================================= */
+
+            .oag-location {
+
+                min-width: 190px;
+
+                padding:
+                    13px 17px;
+
+                border:
+                    1px solid
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .12
+                    );
+
+                border-radius: 14px;
+
+                background:
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .035
+                    );
+
+                text-align: right;
+            }
+
+
+            .oag-location-label {
+
+                display: block;
+
+                font-size: 10px;
+
+                letter-spacing: 1.8px;
+
+                opacity: .45;
+
+                margin-bottom: 5px;
+            }
+
+
+            #oagLocationValue {
+
+                font-size: 14px;
+
+                font-weight: 600;
+            }
+
+
+            /* =================================================
+               THREE GRAPH GRID
+               ================================================= */
+
+            .oag-grid {
+
+                display: grid;
+
+                grid-template-columns:
+                    repeat(
+                        3,
+                        minmax(
+                            0,
+                            1fr
+                        )
+                    );
+
+                gap: 20px;
+
+                width: 100%;
+            }
+
+
+            /* =================================================
+               CARD
+               ================================================= */
+
+            .oag-card {
+
+                position: relative;
+
+                min-width: 0;
+
+                padding: 18px;
+
+                border:
+                    1px solid
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .10
+                    );
+
+                border-radius: 20px;
+
+                background:
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .035
+                    );
+
+                backdrop-filter:
+                    blur(12px);
+
+                overflow: visible;
+            }
+
+
+            .oag-card-header {
+
+                display: flex;
+
+                align-items: center;
+
+                justify-content:
+                    space-between;
+
+                gap: 10px;
+
+                margin-bottom: 8px;
+            }
+
+
+            .oag-card-title {
+
+                font-size: 16px;
+
+                font-weight: 700;
+            }
+
+
+            .oag-card-subtitle {
+
+                margin-top: 4px;
+
+                font-size: 10px;
+
+                opacity: .45;
+            }
+
+
+            .oag-unit {
+
+                font-size: 11px;
+
+                font-weight: 700;
+
+                padding:
+                    6px 9px;
+
+                border-radius: 8px;
+
+                background:
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .06
+                    );
+
+                opacity: .8;
+            }
+
+
+            /* =================================================
+               GRAPH
+               ================================================= */
+
+            .oag-chart {
+
+                position: relative;
+
+                width: 100%;
+
+                height: 310px;
+
+                min-height: 310px;
+
+                overflow: visible;
+            }
+
+
+            .oag-chart svg {
+
+                display: block;
+
+                width: 100%;
+
+                height: 310px;
+
+                overflow: visible;
+            }
+
+
+            .oag-loading {
+
+                height: 310px;
+
+                display: flex;
+
+                align-items: center;
+
+                justify-content: center;
+
+                font-size: 12px;
+
+                opacity: .45;
+            }
+
+
+            /* =================================================
+               GRID
+               ================================================= */
+
+            .oag-grid-line {
+
+                stroke:
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .08
+                    );
+
+                stroke-width: 1;
+            }
+
+
+            .oag-axis {
+
+                stroke:
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .22
+                    );
+
+                stroke-width: 1;
+            }
+
+
+            .oag-axis-text {
+
+                fill:
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .48
+                    );
+
+                font-size: 9px;
+
+                font-family:
+                    Arial,
+                    Helvetica,
+                    sans-serif;
+            }
+
+
+            /* =================================================
+               GRAPH LINES
+               ================================================= */
+
+            .oag-line {
+
+                fill: none;
+
+                stroke-width: 3;
+
+                stroke-linecap: round;
+
+                stroke-linejoin: round;
+            }
+
+
+            /*
+             * Temperature
+             */
+
+            .oag-temperature-line {
+
+                stroke:
+                    rgb(
+                        55,
+                        190,
+                        255
+                    );
+            }
+
+
+            /*
+             * Salinity
+             */
+
+            .oag-salinity-line {
+
+                stroke:
+                    rgb(
+                        80,
+                        220,
+                        170
+                    );
+            }
+
+
+            /*
+             * Current
+             */
+
+            .oag-current-line {
+
+                stroke:
+                    rgb(
+                        175,
+                        120,
+                        255
+                    );
+            }
+
+
+            /* =================================================
+               POINTS
+               ================================================= */
+
+            .oag-point {
+
+                cursor: pointer;
+
+                stroke:
+                    #071522;
+
+                stroke-width: 2;
+
+                transition:
+                    r .15s ease,
+                    stroke-width .15s ease,
+                    filter .15s ease;
+            }
+
+
+            .oag-point:hover {
+
+                r: 7;
+
+                stroke-width: 3;
+
+                filter:
+                    drop-shadow(
+                        0 0 6px
+                        rgba(
+                            255,
+                            255,
+                            255,
+                            .5
+                        )
+                    );
+            }
+
+
+            .oag-point.oag-selected-point {
+
+                r: 8;
+
+                stroke-width: 3;
+            }
+
+
+            /* =================================================
+               POINT POPUP
+               ================================================= */
+
+            .oag-point-popup {
+
+                position: absolute;
+
+                min-width: 190px;
+
+                max-width: 230px;
+
+                padding:
+                    13px 14px;
+
+                border:
+                    1px solid
+                    rgba(
+                        100,
+                        210,
+                        245,
+                        .35
+                    );
+
+                border-radius: 12px;
+
+                background:
+                    rgba(
+                        4,
+                        18,
+                        30,
+                        .97
+                    );
+
+                box-shadow:
+                    0 12px 35px
+                    rgba(
+                        0,
+                        0,
+                        0,
+                        .45
+                    );
+
+                backdrop-filter:
+                    blur(14px);
+
+                z-index: 100;
+
+                pointer-events: none;
+
+                opacity: 0;
+
+                transform:
+                    translateY(7px)
+                    scale(.96);
+
+                transition:
+                    opacity .18s ease,
+                    transform .18s ease;
+            }
+
+
+            .oag-point-popup.oag-popup-visible {
+
+                opacity: 1;
+
+                transform:
+                    translateY(0)
+                    scale(1);
+            }
+
+
+            .oag-popup-depth {
+
+                font-size: 15px;
+
+                font-weight: 700;
+
+                margin-bottom: 9px;
+
+                padding-bottom: 8px;
+
+                border-bottom:
+                    1px solid
+                    rgba(
+                        255,
+                        255,
+                        255,
+                        .10
+                    );
+            }
+
+
+            .oag-popup-row {
+
+                display: flex;
+
+                justify-content:
+                    space-between;
+
+                align-items: center;
+
+                gap: 12px;
+
+                margin-top: 7px;
+
+                font-size: 11px;
+            }
+
+
+            .oag-popup-label {
+
+                opacity: .55;
+            }
+
+
+            .oag-popup-value {
+
+                font-weight: 700;
+
+                text-align: right;
+            }
+
+
+            /* =================================================
+               EMPTY
+               ================================================= */
+
+            .oag-empty {
+
+                height: 310px;
+
+                display: flex;
+
+                align-items: center;
+
+                justify-content: center;
+
+                text-align: center;
+
+                font-size: 12px;
+
+                opacity: .5;
+            }
+
+
+            /* =================================================
+               HINT
+               ================================================= */
+
+            .oag-hint {
+
+                margin-top: 18px;
+
+                text-align: center;
+
+                font-size: 11px;
+
+                opacity: .4;
+            }
+
+
+            /* =================================================
+               TABLET
+               ================================================= */
+
+            @media (max-width: 1100px) {
+
+                .oag-grid {
+
+                    grid-template-columns:
+                        repeat(
+                            3,
+                            minmax(
+                                260px,
+                                1fr
+                            )
+                        );
+
+                    overflow-x: auto;
+
+                    padding-bottom: 12px;
+
+                    scrollbar-width: thin;
+                }
+
+
+                .oag-card {
+
+                    min-width: 260px;
+                }
+
+            }
+
+
+            /* =================================================
+               MOBILE
+               ================================================= */
+
+            @media (max-width: 700px) {
+
+                #oceanAnalyticsSection {
+
+                    margin-top:
+                        1265px !important;
+
+                    padding:
+                        60px
+                        18px
+                        80px !important;
+                }
+
+
+                .oag-header {
+
+                    flex-direction:
+                        column;
+
+                    align-items:
+                        flex-start;
+
+                    gap: 18px;
+                }
+
+
+                .oag-location {
+
+                    width: 100%;
+
+                    text-align:
+                        left;
+                }
+
+
+                .oag-grid {
+
+                    grid-template-columns:
+                        repeat(
+                            3,
+                            280px
+                        );
+
+                    overflow-x: auto;
+
+                    gap: 15px;
+                }
+
+
+                .oag-card {
+
+                    min-width: 280px;
+                }
+
+            }
+
+
+            /* =================================================
+               SMALL MOBILE
+               ================================================= */
+
+            @media (max-width: 450px) {
+
+                .oag-title {
+
+                    font-size: 27px;
+                }
+
+
+                .oag-description {
+
+                    font-size: 12px;
+                }
+
+
+                .oag-card {
+
+                    min-width: 270px;
+
+                    padding: 14px;
+                }
+
+
+                .oag-chart,
+                .oag-chart svg,
+                .oag-loading,
+                .oag-empty {
+
+                    height: 275px;
+
+                    min-height: 275px;
+                }
+
+            }
+
+        `;
+
+
+        document.head.appendChild(
+            style
+        );
+
+    }
+
+
+    /* =========================================================
+       HELPERS
+       ========================================================= */
+
+    function numberValue(value) {
+
+        const n =
+            Number(value);
+
+        return Number.isFinite(n)
+            ? n
+            : null;
+    }
+
+
+    function formatNumber(
+        value,
+        decimals = 2
+    ) {
+
+        const n =
+            numberValue(value);
+
+        if (n === null) {
+            return "N/A";
+        }
+
+        return n.toFixed(
+            decimals
+        );
+    }
+
+
+    function extractTemperature(data) {
+
+        return numberValue(
+
+            data?.temperature ??
+            data?.temp ??
+            data?.temperature_c ??
+            data?.temperatureC ??
+            data?.properties?.temperature
+
+        );
+    }
+
+
+    function extractSalinity(data) {
+
+        return numberValue(
+
+            data?.salinity ??
+            data?.salinity_psu ??
+            data?.salinityPSU ??
+            data?.properties?.salinity
+
+        );
+    }
+
+
+    function extractCurrentSpeed(data) {
+
+        const direct =
+            numberValue(
+
+                data?.current ??
+                data?.currentSpeed ??
+                data?.current_speed ??
+                data?.speed ??
+                data?.properties?.current
+
+            );
+
+
+        if (direct !== null) {
+            return direct;
+        }
+
+
+        const u =
+            numberValue(
+
+                data?.u ??
+                data?.current_u ??
+                data?.currentU ??
+                data?.properties?.u
+
+            );
+
+
+        const v =
+            numberValue(
+
+                data?.v ??
+                data?.current_v ??
+                data?.currentV ??
+                data?.properties?.v
+
+            );
+
+
+        if (
+            u !== null &&
+            v !== null
+        ) {
+
+            return Math.sqrt(
+                (
+                    u * u
+                ) +
+                (
+                    v * v
+                )
+            );
+
+        }
+
+
+        return null;
+    }
+
+
+    /* =========================================================
+       LOCATION
+       ========================================================= */
+
+    function getLocationText() {
+
+        const latInput =
+            document.getElementById(
+                "latInput"
+            );
+
+
+        const lonInput =
+            document.getElementById(
+                "lonInput"
+            );
+
+
+        const lat =
+            latInput
+                ? Number(
+                    latInput.value
+                )
+                : null;
+
+
+        const lon =
+            lonInput
+                ? Number(
+                    lonInput.value
+                )
+                : null;
+
+
+        if (
+            Number.isFinite(lat) &&
+            Number.isFinite(lon)
+        ) {
+
+            return (
+                `${lat.toFixed(2)}°, ` +
+                `${lon.toFixed(2)}°`
+            );
+        }
+
+
+        return "Current location";
+    }
+
+
+    function updateLocationText() {
+
+        const element =
+            document.getElementById(
+                "oagLocationValue"
+            );
+
+
+        if (element) {
+
+            element.textContent =
+                getLocationText();
+
+        }
+
+    }
+
+
+    /* =========================================================
+       FETCH
+       ========================================================= */
+
+    async function fetchDepthData(
+        lat,
+        lon,
+        depth
+    ) {
+
+        const url =
+            `/api/ocean-data?` +
+            `lat=${encodeURIComponent(lat)}` +
+            `&lon=${encodeURIComponent(lon)}` +
+            `&depth=${encodeURIComponent(depth)}`;
+
+
+        const response =
+            await fetch(url);
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+
+        }
+
+
+        return await response.json();
+    }
+
+
+    /* =========================================================
+       POPUP
+       ========================================================= */
+
+    function closeAllPopups() {
+
+        document
+            .querySelectorAll(
+                ".oag-point-popup"
+            )
+            .forEach(
+                popup => {
+
+                    popup.classList.remove(
+                        "oag-popup-visible"
+                    );
+
+                }
+            );
+
+
+        document
+            .querySelectorAll(
+                ".oag-selected-point"
+            )
+            .forEach(
+                point => {
+
+                    point.classList.remove(
+                        "oag-selected-point"
+                    );
+
+                }
+            );
+
+    }
+
+
+    function showPointPopup(
+        graphContainer,
+        point,
+        pointElement
+    ) {
+
+        closeAllPopups();
+
+
+        pointElement.classList.add(
+            "oag-selected-point"
+        );
+
+
+        const popup =
+            document.createElement(
+                "div"
+            );
+
+
+        popup.className =
+            "oag-point-popup";
+
+
+        popup.innerHTML = `
+
+            <div class="oag-popup-depth">
+                Depth:
+                ${formatNumber(
+                    point.depth,
+                    0
+                )} m
+            </div>
+
+
+            <div class="oag-popup-row">
+
+                <span class="oag-popup-label">
+                    Temperature
+                </span>
+
+                <span class="oag-popup-value">
+                    ${formatNumber(
+                        point.temperature
+                    )}
+                    °C
+                </span>
+
+            </div>
+
+
+            <div class="oag-popup-row">
+
+                <span class="oag-popup-label">
+                    Salinity
+                </span>
+
+                <span class="oag-popup-value">
+                    ${formatNumber(
+                        point.salinity
+                    )}
+                    PSU
+                </span>
+
+            </div>
+
+
+            <div class="oag-popup-row">
+
+                <span class="oag-popup-label">
+                    Ocean Current
+                </span>
+
+                <span class="oag-popup-value">
+                    ${formatNumber(
+                        point.current
+                    )}
+                    m/s
+                </span>
+
+            </div>
+
+        `;
+
+
+        graphContainer.appendChild(
+            popup
+        );
+
+
+        /* -----------------------------------------------------
+           POSITION POPUP NEAR CLICKED POINT
+           ----------------------------------------------------- */
+
+        const svg =
+            graphContainer.querySelector(
+                "svg"
+            );
+
+
+        if (!svg) {
+            return;
+        }
+
+
+        const svgRect =
+            svg.getBoundingClientRect();
+
+
+        const pointRect =
+            pointElement.getBoundingClientRect();
+
+
+        const containerRect =
+            graphContainer.getBoundingClientRect();
+
+
+        let left =
+            pointRect.left -
+            containerRect.left +
+            pointRect.width / 2;
+
+
+        let top =
+            pointRect.top -
+            containerRect.top -
+            12;
+
+
+        /*
+         * Keep popup inside graph
+         */
+
+        left =
+            Math.max(
+                8,
+                Math.min(
+                    left,
+                    graphContainer.clientWidth -
+                    200
+                )
+            );
+
+
+        top =
+            Math.max(
+                5,
+                top - 105
+            );
+
+
+        popup.style.left =
+            `${left}px`;
+
+
+        popup.style.top =
+            `${top}px`;
+
+
+        requestAnimationFrame(
+            () => {
+
+                popup.classList.add(
+                    "oag-popup-visible"
+                );
+
+            }
+        );
+
+
+        /* -----------------------------------------------------
+           CLOSE WHEN CLICKING OUTSIDE
+           ----------------------------------------------------- */
+
+        setTimeout(
+            () => {
+
+                function outsideClick(
+                    event
+                ) {
+
+                    if (
+                        !popup.contains(
+                            event.target
+                        ) &&
+                        event.target !==
+                        pointElement
+                    ) {
+
+                        popup.remove();
+
+                        pointElement.classList.remove(
+                            "oag-selected-point"
+                        );
+
+                        document.removeEventListener(
+                            "click",
+                            outsideClick
+                        );
+
+                    }
+
+                }
+
+
+                document.addEventListener(
+                    "click",
+                    outsideClick
+                );
+
+            },
+            0
+        );
+
+    }
+
+
+    /* =========================================================
+       DRAW GRAPH
+       ========================================================= */
+
+    function drawGraph(
+        container,
+        points,
+        type
+    ) {
+
+        if (!container) {
+            return;
+        }
+
+
+        const validPoints =
+            points.filter(
+                point =>
+                    point.value !== null &&
+                    Number.isFinite(
+                        point.value
+                    )
+            );
+
+
+        if (!validPoints.length) {
+
+            container.innerHTML = `
+
+                <div class="oag-empty">
+                    No data available
+                    for this parameter.
+                </div>
+
+            `;
+
+            return;
+        }
+
+
+        const width = 900;
+
+        const height = 310;
+
+        const left = 58;
+
+        const right = 22;
+
+        const top = 20;
+
+        const bottom = 48;
+
+
+        const plotWidth =
+            width -
+            left -
+            right;
+
+
+        const plotHeight =
+            height -
+            top -
+            bottom;
+
+
+        const depths =
+            validPoints.map(
+                point =>
+                    point.depth
+            );
+
+
+        const values =
+            validPoints.map(
+                point =>
+                    point.value
+            );
+
+
+        let minDepth =
+            Math.min(
+                ...depths
+            );
+
+
+        let maxDepth =
+            Math.max(
+                ...depths
+            );
+
+
+        if (
+            minDepth ===
+            maxDepth
+        ) {
+
+            maxDepth =
+                minDepth + 1;
+
+        }
+
+
+        let minValue =
+            Math.min(
+                ...values
+            );
+
+
+        let maxValue =
+            Math.max(
+                ...values
+            );
+
+
+        if (
+            minValue ===
+            maxValue
+        ) {
+
+            const padding =
+                Math.abs(
+                    minValue
+                ) * .1 || 1;
+
+
+            minValue -=
+                padding;
+
+
+            maxValue +=
+                padding;
+        }
+
+
+        const valuePadding =
+            (
+                maxValue -
+                minValue
+            ) * .12;
+
+
+        minValue -=
+            valuePadding;
+
+
+        maxValue +=
+            valuePadding;
+
+
+        function x(depth) {
+
+            return (
+                left +
+                (
+                    (
+                        depth -
+                        minDepth
+                    ) /
+                    (
+                        maxDepth -
+                        minDepth
+                    )
+                ) *
+                plotWidth
+            );
+
+        }
+
+
+        function y(value) {
+
+            return (
+                top +
+                (
+                    1 -
+                    (
+                        (
+                            value -
+                            minValue
+                        ) /
+                        (
+                            maxValue -
+                            minValue
+                        )
+                    )
+                ) *
+                plotHeight
+            );
+
+        }
+
+
+        /* =====================================================
+           LINE CLASS
+           ===================================================== */
+
+        let lineClass =
+            "oag-temperature-line";
+
+
+        if (
+            type ===
+            "salinity"
+        ) {
+
+            lineClass =
+                "oag-salinity-line";
+
+        }
+
+
+        if (
+            type ===
+            "current"
+        ) {
+
+            lineClass =
+                "oag-current-line";
+
+        }
+
+
+        /* =====================================================
+           PATH
+           ===================================================== */
+
+        const pathData =
+            validPoints
+                .map(
+                    (
+                        point,
+                        index
+                    ) => {
+
+                        const px =
+                            x(
+                                point.depth
+                            );
+
+
+                        const py =
+                            y(
+                                point.value
+                            );
+
+
+                        return (
+                            index === 0
+                                ? `M ${px} ${py}`
+                                : `L ${px} ${py}`
+                        );
+
+                    }
+                )
+                .join(" ");
+
+
+        /* =====================================================
+           SVG START
+           ===================================================== */
+
+        let svg = `
+
+            <svg
+                viewBox="
+                    0
+                    0
+                    ${width}
+                    ${height}
+                "
+                preserveAspectRatio="none"
+            >
+
+                <!-- GRID -->
+
+                <line
+                    x1="${left}"
+                    y1="${top}"
+                    x2="${width - right}"
+                    y2="${top}"
+                    class="oag-grid-line"
+                />
+
+
+                <line
+                    x1="${left}"
+                    y1="${top + plotHeight / 4}"
+                    x2="${width - right}"
+                    y2="${top + plotHeight / 4}"
+                    class="oag-grid-line"
+                />
+
+
+                <line
+                    x1="${left}"
+                    y1="${top + plotHeight / 2}"
+                    x2="${width - right}"
+                    y2="${top + plotHeight / 2}"
+                    class="oag-grid-line"
+                />
+
+
+                <line
+                    x1="${left}"
+                    y1="${top + plotHeight * .75}"
+                    x2="${width - right}"
+                    y2="${top + plotHeight * .75}"
+                    class="oag-grid-line"
+                />
+
+
+                <line
+                    x1="${left}"
+                    y1="${top + plotHeight}"
+                    x2="${width - right}"
+                    y2="${top + plotHeight}"
+                    class="oag-grid-line"
+                />
+
+
+                <!-- AXES -->
+
+                <line
+                    x1="${left}"
+                    y1="${top}"
+                    x2="${left}"
+                    y2="${top + plotHeight}"
+                    class="oag-axis"
+                />
+
+
+                <line
+                    x1="${left}"
+                    y1="${top + plotHeight}"
+                    x2="${width - right}"
+                    y2="${top + plotHeight}"
+                    class="oag-axis"
+                />
+
+
+                <!-- Y VALUES -->
+
+                <text
+                    x="${left - 8}"
+                    y="${top + 4}"
+                    text-anchor="end"
+                    class="oag-axis-text"
+                >
+                    ${formatNumber(
+                        maxValue
+                    )}
+                </text>
+
+
+                <text
+                    x="${left - 8}"
+                    y="${top + plotHeight / 2 + 4}"
+                    text-anchor="end"
+                    class="oag-axis-text"
+                >
+                    ${formatNumber(
+                        (
+                            minValue +
+                            maxValue
+                        ) / 2
+                    )}
+                </text>
+
+
+                <text
+                    x="${left - 8}"
+                    y="${top + plotHeight + 4}"
+                    text-anchor="end"
+                    class="oag-axis-text"
+                >
+                    ${formatNumber(
+                        minValue
+                    )}
+                </text>
+
+
+                <!-- DEPTH -->
+
+                <text
+                    x="${left}"
+                    y="${height - 18}"
+                    text-anchor="middle"
+                    class="oag-axis-text"
+                >
+                    ${Math.round(
+                        minDepth
+                    )} m
+                </text>
+
+
+                <text
+                    x="${width - right}"
+                    y="${height - 18}"
+                    text-anchor="middle"
+                    class="oag-axis-text"
+                >
+                    ${Math.round(
+                        maxDepth
+                    )} m
+                </text>
+
+
+                <!-- LINE -->
+
+                <path
+                    d="${pathData}"
+                    class="
+                        oag-line
+                        ${lineClass}
+                    "
+                />
+
+        `;
+
+
+        /* =====================================================
+           POINTS
+           ===================================================== */
+
+        validPoints.forEach(
+            (
+                point,
+                index
+            ) => {
+
+                const cx =
+                    x(
+                        point.depth
+                    );
+
+
+                const cy =
+                    y(
+                        point.value
+                    );
+
+
+                let pointColor =
+                    "rgb(55,190,255)";
+
+
+                if (
+                    type ===
+                    "salinity"
+                ) {
+
+                    pointColor =
+                        "rgb(80,220,170)";
+
+                }
+
+
+                if (
+                    type ===
+                    "current"
+                ) {
+
+                    pointColor =
+                        "rgb(175,120,255)";
+
+                }
+
+
+                svg += `
+
+                    <circle
+
+                        class="oag-point"
+
+                        cx="${cx}"
+
+                        cy="${cy}"
+
+                        r="5"
+
+                        fill="${pointColor}"
+
+                        data-point-index="${index}"
+
+                    />
+
+                `;
+
+            }
+        );
+
+
+        svg += `
+
+            </svg>
+
+        `;
+
+
+        container.innerHTML =
+            svg;
+
+
+        /* =====================================================
+           CLICK / TAP
+           ===================================================== */
+
+        const pointElements =
+            container.querySelectorAll(
+                ".oag-point"
+            );
+
+
+        pointElements.forEach(
+            (
+                element,
+                index
+            ) => {
+
+                const selectPoint =
+                    function(event) {
+
+                        if (event) {
+
+                            event.stopPropagation();
+
+                        }
+
+
+                        const point =
+                            validPoints[index];
+
+
+                        showPointPopup(
+                            container,
+                            point,
+                            element
+                        );
+
+                    };
+
+
+                element.addEventListener(
+                    "click",
+                    selectPoint
+                );
+
+
+                element.addEventListener(
+                    "touchend",
+                    function(event) {
+
+                        event.preventDefault();
+
+                        event.stopPropagation();
+
+                        selectPoint(event);
+
+                    },
+                    {
+                        passive: false
+                    }
+                );
+
+            }
+        );
+
+
+        /* =====================================================
+           LINE ANIMATION
+           ===================================================== */
+
+        const line =
+            container.querySelector(
+                ".oag-line"
+            );
+
+
+        if (line) {
+
+            let length =
+                2000;
+
+
+            try {
+
+                length =
+                    line.getTotalLength();
+
+            } catch (error) {
+
+                // fallback
+
+            }
+
+
+            line.style.strokeDasharray =
+                length;
+
+
+            line.style.strokeDashoffset =
+                length;
+
+
+            requestAnimationFrame(
+                () => {
+
+                    line.style.transition =
+                        "stroke-dashoffset 1.5s ease";
+
+
+                    line.style.strokeDashoffset =
+                        "0";
+
+                }
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       LOAD GRAPHS
+       ========================================================= */
+
+    async function loadGraphs() {
+
+        const latInput =
+            document.getElementById(
+                "latInput"
+            );
+
+
+        const lonInput =
+            document.getElementById(
+                "lonInput"
+            );
+
+
+        if (
+            !latInput ||
+            !lonInput
+        ) {
+
+            console.warn(
+                "Ocean Analytics: coordinate inputs not found."
+            );
+
+            return;
+        }
+
+
+        const lat =
+            Number(
+                latInput.value
+            );
+
+
+        const lon =
+            Number(
+                lonInput.value
+            );
+
+
+        if (
+            !Number.isFinite(lat) ||
+            !Number.isFinite(lon)
+        ) {
+
+            return;
+        }
+
+
+        updateLocationText();
+
+
+        /* =====================================================
+           DEPTH
+           ===================================================== */
+
+        const slider =
+            document.getElementById(
+                "depthSlider"
+            );
+
+
+        let maxDepth =
+            5000;
+
+
+        if (slider) {
+
+            const sliderMax =
+                Number(
+                    slider.max
+                );
+
+
+            if (
+                Number.isFinite(
+                    sliderMax
+                ) &&
+                sliderMax > 0
+            ) {
+
+                maxDepth =
+                    sliderMax;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           DEPTH POINTS
+           ===================================================== */
+
+        const depthCount =
+            11;
+
+
+        const depths = [];
+
+
+        for (
+            let i = 0;
+            i < depthCount;
+            i++
+        ) {
+
+            depths.push(
+
+                Math.round(
+
+                    (
+                        maxDepth *
+                        i
+                    ) /
+                    (
+                        depthCount -
+                        1
+                    )
+
+                )
+
+            );
+
+        }
+
+
+        const temperaturePoints =
+            [];
+
+
+        const salinityPoints =
+            [];
+
+
+        const currentPoints =
+            [];
+
+
+        /* =====================================================
+           FETCH EACH DEPTH
+           ===================================================== */
+
+        for (
+            const depth of depths
+        ) {
+
+            try {
+
+                const data =
+                    await fetchDepthData(
+                        lat,
+                        lon,
+                        depth
+                    );
+
+
+                const temperature =
+                    extractTemperature(
+                        data
+                    );
+
+
+                const salinity =
+                    extractSalinity(
+                        data
+                    );
+
+
+                const current =
+                    extractCurrentSpeed(
+                        data
+                    );
+
+
+                /*
+                 * Store complete reading
+                 * in every point.
+                 */
+
+                temperaturePoints.push({
+
+                    depth,
+
+                    value:
+                        temperature,
+
+                    temperature,
+
+                    salinity,
+
+                    current
+
+                });
+
+
+                salinityPoints.push({
+
+                    depth,
+
+                    value:
+                        salinity,
+
+                    temperature,
+
+                    salinity,
+
+                    current
+
+                });
+
+
+                currentPoints.push({
+
+                    depth,
+
+                    value:
+                        current,
+
+                    temperature,
+
+                    salinity,
+
+                    current
+
+                });
+
+
+            } catch (error) {
+
+                console.warn(
+                    `Ocean Analytics:
+                     failed at ${depth}m`,
+                    error
+                );
+
+
+                temperaturePoints.push({
+
+                    depth,
+
+                    value: null,
+
+                    temperature: null,
+
+                    salinity: null,
+
+                    current: null
+
+                });
+
+
+                salinityPoints.push({
+
+                    depth,
+
+                    value: null,
+
+                    temperature: null,
+
+                    salinity: null,
+
+                    current: null
+
+                });
+
+
+                currentPoints.push({
+
+                    depth,
+
+                    value: null,
+
+                    temperature: null,
+
+                    salinity: null,
+
+                    current: null
+
+                });
+
+            }
+
+        }
+
+
+        /* =====================================================
+           DRAW
+           ===================================================== */
+
+        drawGraph(
+
+            document.getElementById(
+                "oagTemperatureChart"
+            ),
+
+            temperaturePoints,
+
+            "temperature"
+
+        );
+
+
+        drawGraph(
+
+            document.getElementById(
+                "oagSalinityChart"
+            ),
+
+            salinityPoints,
+
+            "salinity"
+
+        );
+
+
+        drawGraph(
+
+            document.getElementById(
+                "oagCurrentChart"
+            ),
+
+            currentPoints,
+
+            "current"
+
+        );
+
+    }
+
+
+    /* =========================================================
+       RELOAD ON LOCATION CHANGE
+       ========================================================= */
+
+    let reloadTimer = null;
+
+
+    function scheduleReload() {
+
+        clearTimeout(
+            reloadTimer
+        );
+
+
+        reloadTimer =
+            setTimeout(
+                () => {
+
+                    loadGraphs();
+
+                },
+                500
+            );
+
+    }
+
+
+    const locateButton =
+        document.getElementById(
+            "locateButton"
+        );
+
+
+    if (locateButton) {
+
+        locateButton.addEventListener(
+            "click",
+            scheduleReload
+        );
+
+    }
+
+
+    const resetButton =
+        document.getElementById(
+            "resetButton"
+        );
+
+
+    if (resetButton) {
+
+        resetButton.addEventListener(
+            "click",
+            scheduleReload
+        );
+
+    }
+
+
+    const latInput =
+        document.getElementById(
+            "latInput"
+        );
+
+
+    const lonInput =
+        document.getElementById(
+            "lonInput"
+        );
+
+
+    if (latInput) {
+
+        latInput.addEventListener(
+            "change",
+            scheduleReload
+        );
+
+    }
+
+
+    if (lonInput) {
+
+        lonInput.addEventListener(
+            "change",
+            scheduleReload
+        );
+
+    }
+
+
+    /* =========================================================
+       SCROLL REVEAL
+       ========================================================= */
+
+    const observer =
+        new IntersectionObserver(
+
+            entries => {
+
+                entries.forEach(
+                    entry => {
+
+                        if (
+                            entry.isIntersecting
+                        ) {
+
+                            section.classList.add(
+                                "oag-visible"
+                            );
+
+                        }
+
+                    }
+                );
+
+            },
+
+            {
+                threshold: 0.12
+            }
+
+        );
+
+
+    observer.observe(
+        section
+    );
+
+
+    /* =========================================================
+       INITIAL LOAD
+       ========================================================= */
+
+    setTimeout(
+        () => {
+
+            loadGraphs();
+
+        },
+        800
+    );
+
+
+})();
