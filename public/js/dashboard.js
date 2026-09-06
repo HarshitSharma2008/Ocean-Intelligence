@@ -1,5 +1,17 @@
 function initDashboard() {
 
+    /*
+     * GLOBAL INITIALIZATION GUARD
+     */
+    if (window.__oceanDashboardInitialized) {
+        console.warn(
+            "Ocean dashboard is already initialized."
+        );
+        return;
+    }
+
+    window.__oceanDashboardInitialized = true;
+
     const loadingScreen =
         document.getElementById("loadingScreen");
 
@@ -427,11 +439,36 @@ function initDashboard() {
         marker
     );
 
+    /*
+       STATE
+   */
+
     let latitude = 12;
     let longitude = 70;
+
+
+
     let currentDepth = 0;
+    let latestSelectedDepth = 0;
+
+    /*
+     * TRUE while user is actively controlling
+     * the depth slider.
+     */
+    let depthSliderInteracting = false;
 
     let loadingData = false;
+
+    /*
+     * Every API request receives a unique ID.
+     */
+    let depthRequestId = 0;
+
+    /*
+     * Every dive receives a unique ID.
+     */
+    let diveRunId = 0;
+
     let underwaterMode = false;
     let diveInProgress = false;
     let diverGroup = null;
@@ -449,70 +486,7 @@ function initDashboard() {
     const diverStartY = 2.4;
     const diverTargetY = -2.6;
 
-    function latLonToVector(
-        lat,
-        lon,
-        radius
-    ) {
-
-        const phi =
-            THREE.MathUtils.degToRad(
-                90 - lat
-            );
-
-        const theta =
-            THREE.MathUtils.degToRad(
-                lon + 180
-            );
-
-        return new THREE.Vector3(
-            -radius *
-            Math.sin(phi) *
-            Math.cos(theta),
-
-            radius *
-            Math.cos(phi),
-
-            radius *
-            Math.sin(phi) *
-            Math.sin(theta)
-        );
-    }
-
-    function updateMarker() {
-
-        const position =
-            latLonToVector(
-                latitude,
-                longitude,
-                2.5
-            );
-
-        marker.position.copy(
-            position
-        );
-
-        const normal =
-            position.clone().normalize();
-
-        marker.quaternion.setFromUnitVectors(
-            new THREE.Vector3(
-                0,
-                1,
-                0
-            ),
-            normal
-        );
-
-        marker.visible =
-            true;
-
-        marker.updateMatrixWorld(
-            true
-        );
-    }
-
-    updateMarker();
+    /* DOM ELEMENTS*/
 
     const latitudeInput =
         document.getElementById(
@@ -614,6 +588,8 @@ function initDashboard() {
             "#depthInput, .depth-input, input[name='depth']"
         );
 
+    /*DEPTH CONTROL*/
+
     function setupDepthControl() {
 
         if (!depthSlider) {
@@ -642,12 +618,6 @@ function initDashboard() {
 
             depthInput.type =
                 "number";
-        }
-
-        if (
-            depthInput.parentElement !==
-            parent
-        ) {
 
             parent.appendChild(
                 depthInput
@@ -700,30 +670,111 @@ function initDashboard() {
             "none";
 
         depthInput.value =
-            Math.round(
-                currentDepth
+            String(
+                Math.round(
+                    currentDepth
+                )
             );
     }
 
     setupDepthControl();
 
-    function syncDepthInput() {
+    function syncDepthUI() {
 
-        if (!depthInput) {
-            return;
-        }
-
-        depthInput.value =
+        const value =
             Math.round(
-                currentDepth
+                THREE.MathUtils.clamp(
+                    currentDepth,
+                    0,
+                    6000
+                )
             );
 
-        depthInput.min =
-            "0";
+        /*
+         * Never overwrite the slider while
+         * the user is actively dragging it.
+         */
+        if (
+            depthSlider &&
+            !depthSliderInteracting
+        ) {
 
-        depthInput.max =
-            "6000";
+            depthSlider.min =
+                "0";
+
+            depthSlider.max =
+                "6000";
+
+            depthSlider.step =
+                "1";
+
+            depthSlider.value =
+                String(value);
+        }
+
+        if (depthInput) {
+
+            depthInput.min =
+                "0";
+
+            depthInput.max =
+                "6000";
+
+            depthInput.step =
+                "1";
+
+            depthInput.value =
+                String(value);
+        }
+
+        if (depthValue) {
+
+            depthValue.textContent =
+                String(value);
+        }
+
+        if (currentDepthElement) {
+
+            currentDepthElement.textContent =
+                String(value);
+        }
     }
+
+    function setSelectedDepth(value) {
+
+        let depth =
+            Number(
+                value
+            );
+
+        if (!Number.isFinite(depth)) {
+            depth = 0;
+        }
+
+        depth =
+            THREE.MathUtils.clamp(
+                depth,
+                0,
+                6000
+            );
+
+        depth =
+            Math.round(
+                depth
+            );
+
+        currentDepth =
+            depth;
+
+        latestSelectedDepth =
+            depth;
+
+        syncDepthUI();
+
+        updateZone();
+    }
+
+    /* INTELLIGENCE PANEL*/
 
     function createIntelligencePanel() {
 
@@ -1016,9 +1067,7 @@ function initDashboard() {
             "anomalyMessage"
         );
 
-    function updateIntelligence(
-        data
-    ) {
+    function updateIntelligence(data) {
 
         if (
             !conditionStatus ||
@@ -1052,12 +1101,14 @@ function initDashboard() {
                 condition.status;
 
             if (conditionMessage) {
+
                 conditionMessage.textContent =
                     condition.message ||
                     "Marine parameters evaluated.";
             }
 
             if (conditionCard) {
+
                 conditionCard.classList.add(
                     "condition-" +
                     String(
@@ -1074,6 +1125,7 @@ function initDashboard() {
                 "UNAVAILABLE";
 
             if (conditionMessage) {
+
                 conditionMessage.textContent =
                     "Insufficient data for assessment.";
             }
@@ -1085,6 +1137,7 @@ function initDashboard() {
                 anomaly.status;
 
             if (anomalyMessage) {
+
                 anomalyMessage.textContent =
                     anomaly.message ||
                     "Environmental screening completed.";
@@ -1106,7 +1159,6 @@ function initDashboard() {
                     anomalyCard.classList.add(
                         "anomaly-stable"
                     );
-
                 }
             }
 
@@ -1117,6 +1169,7 @@ function initDashboard() {
                 "UNAVAILABLE";
 
             if (anomalyMessage) {
+
                 anomalyMessage.textContent =
                     "Insufficient data for screening.";
             }
@@ -1156,9 +1209,74 @@ function initDashboard() {
         }
     }
 
-    function formatLat(
-        value
+    /*LOCATION / DEPTH HELPERS*/
+
+    function latLonToVector(
+        lat,
+        lon,
+        radius
     ) {
+
+        const phi =
+            THREE.MathUtils.degToRad(
+                90 - lat
+            );
+
+        const theta =
+            THREE.MathUtils.degToRad(
+                lon + 180
+            );
+
+        return new THREE.Vector3(
+            -radius *
+            Math.sin(phi) *
+            Math.cos(theta),
+
+            radius *
+            Math.cos(phi),
+
+            radius *
+            Math.sin(phi) *
+            Math.sin(theta)
+        );
+    }
+
+    function updateMarker() {
+
+        const position =
+            latLonToVector(
+                latitude,
+                longitude,
+                2.5
+            );
+
+        marker.position.copy(
+            position
+        );
+
+        const normal =
+            position.clone().normalize();
+
+        marker.quaternion.setFromUnitVectors(
+            new THREE.Vector3(
+                0,
+                1,
+                0
+            ),
+            normal
+        );
+
+        marker.visible =
+            true;
+
+        marker.updateMatrixWorld(
+            true
+        );
+    }
+
+    updateMarker();
+
+    function formatLat(value) {
 
         if (!Number.isFinite(value)) {
             return "--";
@@ -1175,9 +1293,7 @@ function initDashboard() {
         );
     }
 
-    function formatLon(
-        value
-    ) {
+    function formatLon(value) {
 
         if (!Number.isFinite(value)) {
             return "--";
@@ -1228,10 +1344,10 @@ function initDashboard() {
 
             zone =
                 "ABYSSAL ZONE";
-
         }
 
         if (waterType) {
+
             waterType.textContent =
                 zone;
         }
@@ -1239,30 +1355,14 @@ function initDashboard() {
 
     function updateDepthUI() {
 
-        const value =
-            Math.round(
-                currentDepth
-            );
-
-        if (depthSlider) {
-            depthSlider.value =
-                value;
-        }
-
-        if (depthValue) {
-            depthValue.textContent =
-                value;
-        }
-
-        if (currentDepthElement) {
-            currentDepthElement.textContent =
-                value;
-        }
-
-        syncDepthInput();
+        syncDepthUI();
 
         updateZone();
     }
+
+    /* =========================================================
+       DATA UI
+    ========================================================= */
 
     function setLoadingState() {
 
@@ -1299,9 +1399,7 @@ function initDashboard() {
         resetIntelligence();
     }
 
-    function setNoDataState(
-        message
-    ) {
+    function setNoDataState(message) {
 
         if (temperatureValue) {
             temperatureValue.textContent =
@@ -1336,21 +1434,25 @@ function initDashboard() {
         resetIntelligence();
 
         if (conditionStatus) {
+
             conditionStatus.textContent =
                 "NO DATA";
         }
 
         if (conditionMessage) {
+
             conditionMessage.textContent =
                 "Unable to evaluate conditions.";
         }
 
         if (anomalyStatus) {
+
             anomalyStatus.textContent =
                 "NO DATA";
         }
 
         if (anomalyMessage) {
+
             anomalyMessage.textContent =
                 "Unable to screen parameters.";
         }
@@ -1361,9 +1463,7 @@ function initDashboard() {
         );
     }
 
-    function calculateDataConfidence(
-        data
-    ) {
+    function calculateDataConfidence(data) {
 
         let score =
             100;
@@ -1385,8 +1485,7 @@ function initDashboard() {
 
         const requestedDepth =
             Number(
-                data.requestedDepth ??
-                currentDepth
+                data.requestedDepth
             );
 
         if (
@@ -1418,7 +1517,6 @@ function initDashboard() {
         else {
 
             score -= 15;
-
         }
 
         if (
@@ -1441,7 +1539,6 @@ function initDashboard() {
         else {
 
             score -= 15;
-
         }
 
         if (
@@ -1453,7 +1550,6 @@ function initDashboard() {
         ) {
 
             score -= 10;
-
         }
 
         if (
@@ -1465,7 +1561,6 @@ function initDashboard() {
         ) {
 
             score -= 10;
-
         }
 
         if (
@@ -1478,7 +1573,6 @@ function initDashboard() {
         ) {
 
             score -= 10;
-
         }
 
         return Math.round(
@@ -1490,23 +1584,54 @@ function initDashboard() {
         );
     }
 
+    /*OCEAN API*/
+
     async function fetchOceanData(
         depthOverride = null
     ) {
 
-        if (loadingData) {
-            return null;
-        }
+        /*REQUEST SNAPSHOT*/
+
+        const requestId =
+            ++depthRequestId;
+
+        const requestDepth =
+            depthOverride !== null
+                ? Number(
+                    depthOverride
+                )
+                : Number(
+                    currentDepth
+                );
+
+        const safeDepth =
+            Math.round(
+                THREE.MathUtils.clamp(
+                    Number.isFinite(
+                        requestDepth
+                    )
+                        ? requestDepth
+                        : 0,
+                    0,
+                    6000
+                )
+            );
+
+        /*
+         * IMPORTANT:
+         *
+         * Remember which depth the request belongs to.
+         *
+         * If user changes slider while this request
+         * is loading, this value will be different.
+         */
+        const selectedDepthAtRequest =
+            latestSelectedDepth;
 
         loadingData =
             true;
 
         setLoadingState();
-
-        const requestedDepth =
-            depthOverride !== null
-                ? Number(depthOverride)
-                : currentDepth;
 
         const url =
             `/api/ocean-data?lat=${encodeURIComponent(
@@ -1514,7 +1639,7 @@ function initDashboard() {
             )}&lon=${encodeURIComponent(
                 longitude
             )}&depth=${encodeURIComponent(
-                requestedDepth
+                safeDepth
             )}`;
 
         console.log(
@@ -1552,6 +1677,49 @@ function initDashboard() {
                     "Ocean data unavailable."
                 );
             }
+
+            /*
+             * =================================================
+             * VERY IMPORTANT STALE REQUEST CHECK
+             * =================================================
+             *
+             * Three things must still match:
+             *
+             * 1. Request ID
+             * 2. Latest selected depth
+             * 3. Current selected depth
+             *
+             * If any one is different,
+             * this API response is OLD.
+             */
+
+            if (
+                requestId !==
+                depthRequestId ||
+                latestSelectedDepth !==
+                selectedDepthAtRequest ||
+                currentDepth !==
+                safeDepth
+            ) {
+
+                console.log(
+                    "Ignoring stale ocean response:",
+                    {
+                        requestId,
+                        latestRequestId:
+                            depthRequestId,
+                        requestDepth:
+                            safeDepth,
+                        currentDepth,
+                        selectedDepth:
+                            latestSelectedDepth
+                    }
+                );
+
+                return null;
+            }
+
+            /*UPDATE DATA */
 
             const temperature =
                 Number(
@@ -1605,15 +1773,16 @@ function initDashboard() {
                     "--";
             }
 
+            /*
+             * Display ONLY user's selected depth.
+             *
+             * Never use data.actualDepth here.
+             */
             if (currentDepthElement) {
 
                 currentDepthElement.textContent =
-                    Math.round(
-                        Number.isFinite(
-                            requestedDepth
-                        )
-                            ? requestedDepth
-                            : currentDepth
+                    String(
+                        currentDepth
                     );
             }
 
@@ -1636,16 +1805,13 @@ function initDashboard() {
             if (dataConfidence) {
 
                 dataConfidence.textContent =
-                    calculateDataConfidence(
-                        data
-                    ) + "%";
+                    calculateDataConfidence({
+                        ...data,
+                        requestedDepth:
+                            safeDepth
+                    }) + "%";
             }
 
-            /*
-             * IMPORTANT:
-             * Exact selected depth ka intelligence
-             * yahin update hota hai.
-             */
             updateIntelligence(
                 data
             );
@@ -1656,14 +1822,35 @@ function initDashboard() {
                     "COPERNICUS DATA";
             }
 
-            updateZone();
+            /*
+             * IMPORTANT:
+             *
+             * DO NOT call syncDepthUI() here.
+             *
+             * API response should NEVER modify
+             * the slider/input while user is selecting.
+             */
 
-            syncDepthInput();
+            updateZone();
 
             return data;
 
         }
         catch (error) {
+
+            /*Old request error must also be ignored.*/
+
+            if (
+                requestId !==
+                depthRequestId ||
+                latestSelectedDepth !==
+                selectedDepthAtRequest ||
+                currentDepth !==
+                safeDepth
+            ) {
+
+                return null;
+            }
 
             console.error(
                 "Ocean data error:",
@@ -1674,65 +1861,31 @@ function initDashboard() {
                 error.message
             );
 
+            /*Do NOT sync slider here.*/
+            updateZone();
+
             return null;
 
         }
         finally {
 
-            loadingData =
-                false;
-        }
-    }
-
-    async function fetchDepthReading(
-        depth
-    ) {
-
-        const url =
-            `/api/ocean-data?lat=${encodeURIComponent(
-                latitude
-            )}&lon=${encodeURIComponent(
-                longitude
-            )}&depth=${encodeURIComponent(
-                depth
-            )}`;
-
-        try {
-
-            const response =
-                await fetch(
-                    url,
-                    {
-                        method: "GET",
-                        cache: "no-store"
-                    }
-                );
-
-            const data =
-                await response.json();
+            /*
+             * Only latest request controls
+             * loading state.
+             */
 
             if (
-                !response.ok ||
-                !data ||
-                data.success !== true
+                requestId ===
+                depthRequestId
             ) {
 
-                return null;
+                loadingData =
+                    false;
             }
-
-            return data;
-
-        }
-        catch (error) {
-
-            console.error(
-                "Depth reading error:",
-                error
-            );
-
-            return null;
         }
     }
+
+    /*LOCATION*/
 
     async function findLocationName(
         lat,
@@ -1887,6 +2040,10 @@ function initDashboard() {
         return "Ocean Point";
     }
 
+    /* =========================================================
+       FOCUS
+    ========================================================= */
+
     function focusOnCoordinates() {
 
         if (focusAnimationId) {
@@ -1943,9 +2100,7 @@ function initDashboard() {
         const duration =
             850;
 
-        function animateFocus(
-            time
-        ) {
+        function animateFocus(time) {
 
             const progress =
                 Math.min(
@@ -2004,6 +2159,10 @@ function initDashboard() {
             );
     }
 
+    /* =========================================================
+       LOCATION BUTTON
+    ========================================================= */
+
     async function locatePoint() {
 
         const lat =
@@ -2051,6 +2210,12 @@ function initDashboard() {
 
             return;
         }
+
+        /*
+         * Location change invalidates
+         * previous depth API response.
+         */
+        depthRequestId++;
 
         latitude =
             lat;
@@ -2122,7 +2287,9 @@ function initDashboard() {
             longitude
         );
 
-        await fetchOceanData();
+        await fetchOceanData(
+            currentDepth
+        );
     }
 
     if (locateButton) {
@@ -2177,6 +2344,10 @@ function initDashboard() {
         );
     }
 
+    /* =========================================================
+       DEPTH NUMBER INPUT
+    ========================================================= */
+
     async function applyDepthInput() {
 
         if (diveInProgress) {
@@ -2203,17 +2374,40 @@ function initDashboard() {
                 6000
             );
 
-        currentDepth =
-            Math.round(
-                value
-            );
+        setSelectedDepth(
+            value
+        );
 
-        updateDepthUI();
+        /*
+         * IMPORTANT:
+         *
+         * User manually selected a new depth.
+         *
+         * Immediately invalidate every previous
+         * API request.
+         */
+        depthRequestId++;
+
+        const requestedDepth =
+            currentDepth;
+
+        const selectedDepthAtStart =
+            latestSelectedDepth;
 
         const reading =
             await fetchOceanData(
-                currentDepth
+                requestedDepth
             );
+
+        if (
+            selectedDepthAtStart !==
+            latestSelectedDepth ||
+            requestedDepth !==
+            currentDepth
+        ) {
+
+            return;
+        }
 
         if (reading) {
 
@@ -2231,6 +2425,10 @@ function initDashboard() {
 
             exitUnderwater();
         }
+
+        syncDepthUI();
+
+        updateZone();
     }
 
     if (depthInput) {
@@ -2256,6 +2454,10 @@ function initDashboard() {
             }
         );
     }
+
+    /* =========================================================
+       MOUSE / EARTH
+    ========================================================= */
 
     canvas.addEventListener(
         "pointerdown",
@@ -2361,7 +2563,7 @@ function initDashboard() {
                 );
 
             }
-            catch {}
+            catch { }
         }
     );
 
@@ -2426,6 +2628,14 @@ function initDashboard() {
         );
     }
 
+    /* =========================================================
+       DEPTH SLIDER
+    ========================================================= */
+
+    /* =========================================================
+    DEPTH SLIDER
+ ========================================================= */
+
     if (depthSlider) {
 
         depthSlider.min =
@@ -2437,6 +2647,52 @@ function initDashboard() {
         depthSlider.step =
             "1";
 
+        /*
+         * USER STARTED MOVING SLIDER
+         */
+
+        depthSlider.addEventListener(
+            "pointerdown",
+            () => {
+
+                if (diveInProgress) {
+                    return;
+                }
+
+                depthSliderInteracting =
+                    true;
+            }
+        );
+
+        depthSlider.addEventListener(
+            "pointerup",
+            () => {
+
+                depthSliderInteracting =
+                    false;
+            }
+        );
+
+        depthSlider.addEventListener(
+            "pointercancel",
+            () => {
+
+                depthSliderInteracting =
+                    false;
+            }
+        );
+
+        /*
+         * =====================================================
+         * INPUT
+         * =====================================================
+         *
+         * Runs continuously while dragging.
+         *
+         * NO API REQUEST.
+         * NO syncDepthUI().
+         */
+
         depthSlider.addEventListener(
             "input",
             () => {
@@ -2445,14 +2701,85 @@ function initDashboard() {
                     return;
                 }
 
-                currentDepth =
+                const value =
                     Number(
                         depthSlider.value
                     );
 
-                updateDepthUI();
+                if (
+                    !Number.isFinite(value)
+                ) {
+                    return;
+                }
+
+                const selectedDepth =
+                    Math.round(
+                        THREE.MathUtils.clamp(
+                            value,
+                            0,
+                            6000
+                        )
+                    );
+
+                /*
+                 * Invalidate all previous
+                 * asynchronous requests.
+                 */
+                depthRequestId++;
+
+                currentDepth =
+                    selectedDepth;
+
+                latestSelectedDepth =
+                    selectedDepth;
+
+                /*
+                 * Update only the display.
+                 *
+                 * IMPORTANT:
+                 * Do not call syncDepthUI().
+                 */
+
+                if (depthValue) {
+
+                    depthValue.textContent =
+                        String(
+                            selectedDepth
+                        );
+                }
+
+                if (currentDepthElement) {
+
+                    currentDepthElement.textContent =
+                        String(
+                            selectedDepth
+                        );
+                }
+
+                if (depthInput) {
+
+                    depthInput.value =
+                        String(
+                            selectedDepth
+                        );
+                }
+
+                updateZone();
+
+                console.log(
+                    "Depth selected:",
+                    selectedDepth
+                );
             }
         );
+
+        /*
+         * =====================================================
+         * CHANGE
+         * =====================================================
+         *
+         * Runs when the user releases the slider.
+         */
 
         depthSlider.addEventListener(
             "change",
@@ -2462,17 +2789,124 @@ function initDashboard() {
                     return;
                 }
 
-                currentDepth =
+                const value =
                     Number(
                         depthSlider.value
                     );
 
-                updateDepthUI();
+                if (
+                    !Number.isFinite(value)
+                ) {
+                    return;
+                }
+
+                const requestedDepth =
+                    Math.round(
+                        THREE.MathUtils.clamp(
+                            value,
+                            0,
+                            6000
+                        )
+                    );
+
+                /*
+                 * Slider interaction is finished.
+                 */
+                depthSliderInteracting =
+                    false;
+
+                /*
+                 * The slider is now the
+                 * source of truth.
+                 */
+                currentDepth =
+                    requestedDepth;
+
+                latestSelectedDepth =
+                    requestedDepth;
+
+                /*
+                 * This request must become
+                 * the newest request.
+                 */
+                depthRequestId++;
+
+                const requestIdAtStart =
+                    depthRequestId;
+
+                const selectedDepthAtStart =
+                    requestedDepth;
+
+                /*
+                 * Do not overwrite the slider here.
+                 *
+                 * Only update the other UI.
+                 */
+
+                if (depthInput) {
+
+                    depthInput.value =
+                        String(
+                            requestedDepth
+                        );
+                }
+
+                if (depthValue) {
+
+                    depthValue.textContent =
+                        String(
+                            requestedDepth
+                        );
+                }
+
+                if (currentDepthElement) {
+
+                    currentDepthElement.textContent =
+                        String(
+                            requestedDepth
+                        );
+                }
+
+                updateZone();
 
                 const reading =
                     await fetchOceanData(
-                        currentDepth
+                        requestedDepth
                     );
+
+                /*
+                 * Ignore anything that belongs
+                 * to an older slider selection.
+                 */
+
+                if (
+                    requestIdAtStart !==
+                    depthRequestId
+                ) {
+
+                    console.log(
+                        "Ignoring stale slider request:",
+                        requestedDepth
+                    );
+
+                    return;
+                }
+
+                if (
+                    selectedDepthAtStart !==
+                    currentDepth
+                ) {
+
+                    return;
+                }
+
+                if (
+                    Number(depthSlider.value) !==
+                    requestedDepth
+                ) {
+
+                    return;
+                }
 
                 if (reading) {
 
@@ -2481,7 +2915,9 @@ function initDashboard() {
                     );
                 }
 
-                if (currentDepth > 0) {
+                if (
+                    currentDepth > 0
+                ) {
 
                     enterUnderwater();
 
@@ -2490,9 +2926,49 @@ function initDashboard() {
 
                     exitUnderwater();
                 }
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * Do NOT call syncDepthUI()
+                 * here.
+                 *
+                 * Slider already has the
+                 * correct user-selected value.
+                 */
+
+                if (depthInput) {
+
+                    depthInput.value =
+                        String(
+                            requestedDepth
+                        );
+                }
+
+                if (depthValue) {
+
+                    depthValue.textContent =
+                        String(
+                            requestedDepth
+                        );
+                }
+
+                if (currentDepthElement) {
+
+                    currentDepthElement.textContent =
+                        String(
+                            requestedDepth
+                        );
+                }
+
+                updateZone();
             }
         );
     }
+
+    /* =========================================================
+       UNDERWATER PARTICLES
+    ========================================================= */
 
     const underwaterParticles =
         [];
@@ -2605,6 +3081,10 @@ function initDashboard() {
             bubble
         );
     }
+
+    /* =========================================================
+       DIVER
+    ========================================================= */
 
     function createDiver() {
 
@@ -2910,6 +3390,10 @@ function initDashboard() {
 
     createDiver();
 
+    /* =========================================================
+       OCEAN FLOOR
+    ========================================================= */
+
     const localOceanFloor =
         new THREE.Mesh(
             new THREE.CylinderGeometry(
@@ -2997,9 +3481,13 @@ function initDashboard() {
                 new THREE.Mesh(
                     new THREE.RingGeometry(
                         0.35 +
-                        i * 0.25,
+                        i *
+                        0.25,
+
                         0.37 +
-                        i * 0.25,
+                        i *
+                        0.25,
+
                         48
                     ),
                     new THREE.MeshBasicMaterial({
@@ -3026,6 +3514,10 @@ function initDashboard() {
     }
 
     createDepthRings();
+
+    /* =========================================================
+       UNDERWATER
+    ========================================================= */
 
     function enterUnderwater() {
 
@@ -3109,7 +3601,8 @@ function initDashboard() {
     function animateDiverToDepth(
         depth,
         targetDepth,
-        duration
+        duration,
+        runId
     ) {
 
         return new Promise(
@@ -3117,7 +3610,7 @@ function initDashboard() {
 
                 if (!diverGroup) {
 
-                    resolve();
+                    resolve(false);
 
                     return;
                 }
@@ -3134,9 +3627,17 @@ function initDashboard() {
                 const startTime =
                     performance.now();
 
-                function step(
-                    time
-                ) {
+                function step(time) {
+
+                    if (
+                        runId !==
+                        diveRunId
+                    ) {
+
+                        resolve(false);
+
+                        return;
+                    }
 
                     const progress =
                         Math.min(
@@ -3151,16 +3652,16 @@ function initDashboard() {
                     const eased =
                         progress < 0.5
                             ? 2 *
-                              progress *
-                              progress
+                            progress *
+                            progress
                             : 1 -
-                              Math.pow(
-                                  -2 *
-                                  progress +
-                                  2,
-                                  2
-                              ) /
-                              2;
+                            Math.pow(
+                                -2 *
+                                progress +
+                                2,
+                                2
+                            ) /
+                            2;
 
                     diverGroup.position.y =
                         THREE.MathUtils.lerp(
@@ -3191,7 +3692,7 @@ function initDashboard() {
                         diverGroup.position.y =
                             endY;
 
-                        resolve();
+                        resolve(true);
                     }
                 }
 
@@ -3202,56 +3703,49 @@ function initDashboard() {
         );
     }
 
-    /*
-     * =========================================================
-     * FIXED DIVE FUNCTION
-     * =========================================================
-     *
-     * Selected depth is preserved.
-     * Intermediate 250m readings no longer overwrite
-     * the selected depth or Ocean Analysis.
-     *
-     * Final analysis is fetched using the EXACT target depth.
-     */
+    /* =========================================================
+       DIVE
+    ========================================================= */
+
     async function performDive() {
 
         if (diveInProgress) {
             return;
         }
 
+        const thisDiveId =
+            ++diveRunId;
+
         diveInProgress =
             true;
 
         try {
 
-            /*
-             * Save the user's selected depth FIRST.
-             */
             let targetDepth =
+                Math.round(
+                    currentDepth
+                );
+
+            targetDepth =
                 THREE.MathUtils.clamp(
-                    Math.round(currentDepth),
+                    targetDepth,
                     0,
                     6000
                 );
 
-            /*
-             * If Dive is pressed at 0m,
-             * use the existing 500m default.
-             */
             if (targetDepth === 0) {
 
                 targetDepth =
                     500;
             }
 
-            /*
-             * NEVER overwrite selected target
-             * with 250 / 500 / 750 etc.
-             */
             currentDepth =
                 targetDepth;
 
-            updateDepthUI();
+            latestSelectedDepth =
+                targetDepth;
+
+            syncDepthUI();
 
             autoRotate =
                 false;
@@ -3272,12 +3766,6 @@ function initDashboard() {
                     diverStartY;
             }
 
-            /*
-             * Intermediate points are ONLY for
-             * diver animation.
-             *
-             * They do NOT update Ocean Analysis.
-             */
             const depthStep =
                 250;
 
@@ -3309,88 +3797,80 @@ function initDashboard() {
                 );
             }
 
-            /*
-             * Animate diver through depth.
-             * Analysis is intentionally NOT changed here.
-             */
             for (
                 let i = 0;
                 i < depthPoints.length;
                 i++
             ) {
 
+                if (
+                    thisDiveId !==
+                    diveRunId
+                ) {
+
+                    return;
+                }
+
                 const depthPoint =
                     depthPoints[i];
 
-                /*
-                 * Keep UI locked to selected depth.
-                 */
-                currentDepth =
-                    targetDepth;
+                syncDepthUI();
 
-                updateDepthUI();
+                const animationCompleted =
+                    await animateDiverToDepth(
+                        depthPoint,
+                        targetDepth,
+                        Math.max(
+                            900,
+                            Math.min(
+                                3500,
+                                (
+                                    targetDepth /
+                                    1000
+                                ) *
+                                650
+                            )
+                        ),
+                        thisDiveId
+                    );
 
-                await animateDiverToDepth(
-                    depthPoint,
-                    targetDepth,
-                    Math.max(
-                        900,
-                        Math.min(
-                            3500,
-                            (
-                                targetDepth /
-                                1000
-                            ) * 650
-                        )
-                    )
-                );
+                if (
+                    !animationCompleted
+                ) {
+
+                    return;
+                }
             }
 
-            /*
-             * =================================================
-             * EXACT FINAL DEPTH DATA
-             * =================================================
-             *
-             * This is the important part.
-             *
-             * Example:
-             * User selects 6000m
-             * API request = depth=6000
-             *
-             * User selects 2500m
-             * API request = depth=2500
-             *
-             * User selects 1000m
-             * API request = depth=1000
-             */
+            if (
+                thisDiveId !==
+                diveRunId
+            ) {
+
+                return;
+            }
+
             currentDepth =
                 targetDepth;
 
-            updateDepthUI();
+            latestSelectedDepth =
+                targetDepth;
 
-            /*
-             * fetchOceanData() does:
-             *
-             * 1. Exact depth API call
-             * 2. Temperature update
-             * 3. Salinity update
-             * 4. Current update
-             * 5. Direction update
-             * 6. Data confidence update
-             * 7. Ocean Analysis update
-             *
-             * So Ocean Analysis now corresponds
-             * to the exact selected depth.
-             */
+            syncDepthUI();
+
             const finalReading =
                 await fetchOceanData(
                     targetDepth
                 );
 
-            /*
-             * Explicitly update intelligence again
-             * using ONLY the final selected-depth response.
-             */
+            if (
+                thisDiveId !==
+                diveRunId
+            ) {
+
+                return;
+            }
+
             if (finalReading) {
 
                 updateIntelligence(
@@ -3429,13 +3909,21 @@ function initDashboard() {
                 }
             }
 
-            /*
-             * Lock selected depth one final time.
-             */
+            if (
+                thisDiveId !==
+                diveRunId
+            ) {
+
+                return;
+            }
+
             currentDepth =
                 targetDepth;
 
-            updateDepthUI();
+            latestSelectedDepth =
+                targetDepth;
+
+            syncDepthUI();
 
             if (explorationStatus) {
 
@@ -3445,6 +3933,14 @@ function initDashboard() {
 
         }
         catch (error) {
+
+            if (
+                thisDiveId !==
+                diveRunId
+            ) {
+
+                return;
+            }
 
             console.error(
                 "Dive error:",
@@ -3460,8 +3956,16 @@ function initDashboard() {
         }
         finally {
 
-            diveInProgress =
-                false;
+            if (
+                thisDiveId ===
+                diveRunId
+            ) {
+
+                diveInProgress =
+                    false;
+
+                syncDepthUI();
+            }
         }
     }
 
@@ -3479,6 +3983,10 @@ function initDashboard() {
         );
     }
 
+    /* =========================================================
+       RESET
+    ========================================================= */
+
     if (resetButton) {
 
         resetButton.addEventListener(
@@ -3488,7 +3996,20 @@ function initDashboard() {
                 event.preventDefault();
                 event.stopPropagation();
 
+                /*
+                 * Invalidate every old dive.
+                 */
+                diveRunId++;
+
+                /*
+                 * Invalidate every old API request.
+                 */
+                depthRequestId++;
+
                 diveInProgress =
+                    false;
+
+                loadingData =
                     false;
 
                 if (focusAnimationId) {
@@ -3538,7 +4059,13 @@ function initDashboard() {
                 longitude =
                     70;
 
+                /*
+                 * RESET DEPTH
+                 */
                 currentDepth =
+                    0;
+
+                latestSelectedDepth =
                     0;
 
                 if (latitudeInput) {
@@ -3555,12 +4082,32 @@ function initDashboard() {
 
                 updateMarker();
 
-                updateDepthUI();
+                depthSliderInteracting =
+                    false;
+
+                if (depthSlider) {
+
+                    depthSlider.value =
+                        "0";
+                }
+
+                syncDepthUI();
+                updateZone();
+
+                syncDepthUI();
+
+                updateZone();
 
                 if (diverGroup) {
 
                     diverGroup.position.y =
                         diverStartY;
+
+                    diverGroup.rotation.set(
+                        0,
+                        0,
+                        0
+                    );
                 }
 
                 resetIntelligence();
@@ -3572,10 +4119,22 @@ function initDashboard() {
 
                 exitUnderwater();
 
-                fetchOceanData();
+                /*
+                 * Fetch fresh surface data.
+                 *
+                 * New request ID is generated
+                 * inside fetchOceanData().
+                 */
+                fetchOceanData(
+                    0
+                );
             }
         );
     }
+
+    /* =========================================================
+       ANIMATION
+    ========================================================= */
 
     function animate() {
 
@@ -3624,7 +4183,8 @@ function initDashboard() {
         const markerScale =
             1 +
             Math.sin(
-                time * 3
+                time *
+                3
             ) *
             0.18;
 
@@ -3637,21 +4197,24 @@ function initDashboard() {
         markerGlow.material.opacity =
             0.45 +
             Math.sin(
-                time * 3
+                time *
+                3
             ) *
             0.15;
 
         atmosphere.material.opacity =
             0.06 +
             Math.sin(
-                time * 1.5
+                time *
+                1.5
             ) *
             0.012;
 
         greenAtmosphere.material.opacity =
             0.012 +
             Math.sin(
-                time * 1.2
+                time *
+                1.2
             ) *
             0.004;
 
@@ -3693,7 +4256,8 @@ function initDashboard() {
 
                     bubble.position.x +=
                         Math.sin(
-                            time * 2 +
+                            time *
+                            2 +
                             bubble.position.y
                         ) *
                         0.001;
@@ -3712,19 +4276,22 @@ function initDashboard() {
             oceanLight.intensity =
                 0.8 +
                 Math.sin(
-                    time * 1.5
+                    time *
+                    1.5
                 ) *
                 0.15;
 
             oceanLight.position.x =
                 Math.sin(
-                    time * 0.35
+                    time *
+                    0.35
                 ) *
                 4;
 
             oceanLight.position.z =
                 Math.cos(
-                    time * 0.35
+                    time *
+                    0.35
                 ) *
                 4;
 
@@ -3732,19 +4299,22 @@ function initDashboard() {
 
                 diverGroup.position.x =
                     Math.sin(
-                        time * 0.7
+                        time *
+                        0.7
                     ) *
                     0.035;
 
                 diverGroup.position.z =
                     Math.cos(
-                        time * 0.55
+                        time *
+                        0.55
                     ) *
                     0.035;
 
                 diverGroup.rotation.y =
                     Math.sin(
-                        time * 0.5
+                        time *
+                        0.5
                     ) *
                     0.12;
             }
@@ -3780,6 +4350,10 @@ function initDashboard() {
         );
     }
 
+    /* =========================================================
+       RESIZE
+    ========================================================= */
+
     window.addEventListener(
         "resize",
         () => {
@@ -3803,6 +4377,10 @@ function initDashboard() {
             );
         }
     );
+
+    /* =========================================================
+       INITIAL STATE
+    ========================================================= */
 
     if (latitudeInput) {
 
@@ -3832,17 +4410,32 @@ function initDashboard() {
             );
     }
 
-    updateDepthUI();
+    currentDepth =
+        0;
+
+    latestSelectedDepth =
+        0;
+
+    syncDepthUI();
+
+    updateZone();
 
     findLocationName(
         latitude,
         longitude
     );
 
-    fetchOceanData();
+    fetchOceanData(
+        0
+    );
 
     animate();
 }
+
+
+/* =============================================================
+   START DASHBOARD
+============================================================= */
 
 if (
     document.readyState ===
@@ -3851,7 +4444,10 @@ if (
 
     document.addEventListener(
         "DOMContentLoaded",
-        initDashboard
+        initDashboard,
+        {
+            once: true
+        }
     );
 
 }
