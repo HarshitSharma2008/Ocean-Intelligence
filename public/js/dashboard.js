@@ -3704,170 +3704,236 @@ function initDashboard() {
     }
 
     /* =========================================================
-       DIVE
-    ========================================================= */
+   DIVE
+========================================================= */
 
     async function performDive() {
 
+        /*
+         * If a dive animation is already running,
+         * ignore duplicate clicks.
+         */
         if (diveInProgress) {
             return;
         }
 
-        const thisDiveId =
-            ++diveRunId;
+        /*
+         * Every new DIVE gets a completely new run ID.
+         *
+         * This is important because the user can now
+         * DIVE again without pressing RESET.
+         */
+        const thisDiveId = ++diveRunId;
 
-        diveInProgress =
-            true;
+        /*
+         * Invalidate any previous API request.
+         *
+         * The newest DIVE must always own the final UI state.
+         */
+        depthRequestId++;
+
+        diveInProgress = true;
 
         try {
 
-            let targetDepth =
-                Math.round(
-                    currentDepth
-                );
+            /*
+             * IMPORTANT:
+             *
+             * Always read the CURRENT slider value.
+             * Do not depend on the depth from the previous dive.
+             */
+            let targetDepth = depthSlider
+                ? Number(depthSlider.value)
+                : Number(currentDepth);
 
-            targetDepth =
+            if (!Number.isFinite(targetDepth)) {
+                targetDepth = 0;
+            }
+
+            targetDepth = Math.round(
                 THREE.MathUtils.clamp(
                     targetDepth,
                     0,
                     6000
-                );
+                )
+            );
 
-            if (targetDepth === 0) {
-
-                targetDepth =
-                    500;
-            }
-
-            currentDepth =
-                targetDepth;
-
-            latestSelectedDepth =
-                targetDepth;
+            /*
+             * Keep the selected depth as the source of truth.
+             */
+            currentDepth = targetDepth;
+            latestSelectedDepth = targetDepth;
 
             syncDepthUI();
+            updateZone();
 
-            autoRotate =
-                false;
+            autoRotate = false;
+            isDragging = false;
 
-            isDragging =
-                false;
+            velocityX = 0;
+            velocityY = 0;
 
+            /*
+             * Keep the currently selected latitude/longitude.
+             */
             focusOnCoordinates();
 
-            targetCameraZ =
-                5.7;
+            /*
+             * Enter underwater mode for depths > 0.
+             */
+            if (targetDepth > 0) {
 
-            enterUnderwater();
+                targetCameraZ = 5.7;
 
+                enterUnderwater();
+
+            } else {
+
+                /*
+                 * Surface selection.
+                 */
+                exitUnderwater();
+
+                targetCameraZ = 7.4;
+            }
+
+            /*
+             * Start the diver from the surface
+             * for EVERY new DIVE.
+             *
+             * This is what allows:
+             *
+             * DIVE 500
+             * -> change slider to 1500
+             * -> DIVE 1500
+             *
+             * without RESET.
+             */
             if (diverGroup) {
 
                 diverGroup.position.y =
                     diverStartY;
-            }
 
-            const depthStep =
-                250;
-
-            const depthPoints =
-                [];
-
-            let depth =
-                0;
-
-            while (
-                depth <
-                targetDepth
-            ) {
-
-                depth +=
-                    depthStep;
-
-                if (
-                    depth >
-                    targetDepth
-                ) {
-
-                    depth =
-                        targetDepth;
-                }
-
-                depthPoints.push(
-                    depth
+                diverGroup.rotation.set(
+                    0,
+                    0,
+                    0
                 );
             }
 
-            for (
-                let i = 0;
-                i < depthPoints.length;
-                i++
-            ) {
+            /*
+             * No underwater animation is needed at 0m.
+             */
+            if (targetDepth > 0) {
 
-                if (
-                    thisDiveId !==
-                    diveRunId
+                const depthStep = 250;
+
+                const depthPoints = [];
+
+                let depth = 0;
+
+                while (
+                    depth < targetDepth
                 ) {
 
-                    return;
+                    depth += depthStep;
+
+                    if (
+                        depth > targetDepth
+                    ) {
+                        depth = targetDepth;
+                    }
+
+                    depthPoints.push(
+                        depth
+                    );
                 }
 
-                const depthPoint =
-                    depthPoints[i];
-
-                syncDepthUI();
-
-                const animationCompleted =
-                    await animateDiverToDepth(
-                        depthPoint,
-                        targetDepth,
-                        Math.max(
-                            900,
-                            Math.min(
-                                3500,
-                                (
-                                    targetDepth /
-                                    1000
-                                ) *
-                                650
-                            )
-                        ),
-                        thisDiveId
-                    );
-
-                if (
-                    !animationCompleted
+                /*
+                 * Animate the diver through the selected depth.
+                 */
+                for (
+                    let i = 0;
+                    i < depthPoints.length;
+                    i++
                 ) {
 
-                    return;
+                    /*
+                     * A newer DIVE has started.
+                     * Stop this old animation.
+                     */
+                    if (
+                        thisDiveId !==
+                        diveRunId
+                    ) {
+                        return;
+                    }
+
+                    const depthPoint =
+                        depthPoints[i];
+
+                    const animationCompleted =
+                        await animateDiverToDepth(
+                            depthPoint,
+                            targetDepth,
+                            Math.max(
+                                900,
+                                Math.min(
+                                    3500,
+                                    (
+                                        targetDepth /
+                                        1000
+                                    ) * 650
+                                )
+                            ),
+                            thisDiveId
+                        );
+
+                    if (
+                        !animationCompleted
+                    ) {
+                        return;
+                    }
                 }
             }
 
+            /*
+             * Make sure this is still the latest DIVE.
+             */
             if (
                 thisDiveId !==
                 diveRunId
             ) {
-
                 return;
             }
 
-            currentDepth =
-                targetDepth;
-
-            latestSelectedDepth =
-                targetDepth;
+            /*
+             * Final selected depth.
+             */
+            currentDepth = targetDepth;
+            latestSelectedDepth = targetDepth;
 
             syncDepthUI();
+            updateZone();
 
+            /*
+             * IMPORTANT:
+             *
+             * Fetch using the CURRENT selected depth.
+             */
             const finalReading =
                 await fetchOceanData(
                     targetDepth
                 );
 
+            /*
+             * Ignore response if another DIVE
+             * has already started.
+             */
             if (
                 thisDiveId !==
                 diveRunId
             ) {
-
                 return;
             }
 
@@ -3879,8 +3945,7 @@ function initDashboard() {
 
                 updateZone();
 
-            }
-            else {
+            } else {
 
                 resetIntelligence();
 
@@ -3909,26 +3974,28 @@ function initDashboard() {
                 }
             }
 
+            /*
+             * Final safety check.
+             */
             if (
                 thisDiveId !==
                 diveRunId
             ) {
-
                 return;
             }
 
-            currentDepth =
-                targetDepth;
-
-            latestSelectedDepth =
-                targetDepth;
+            currentDepth = targetDepth;
+            latestSelectedDepth = targetDepth;
 
             syncDepthUI();
+            updateZone();
 
             if (explorationStatus) {
 
                 explorationStatus.textContent =
-                    "UNDERWATER EXPLORATION";
+                    targetDepth > 0
+                        ? "UNDERWATER EXPLORATION"
+                        : "OCEAN EXPLORATION ACTIVE";
             }
 
         }
@@ -3938,7 +4005,6 @@ function initDashboard() {
                 thisDiveId !==
                 diveRunId
             ) {
-
                 return;
             }
 
@@ -3956,33 +4022,21 @@ function initDashboard() {
         }
         finally {
 
+            /*
+             * Only the latest DIVE can unlock the button.
+             */
             if (
                 thisDiveId ===
                 diveRunId
             ) {
 
-                diveInProgress =
-                    false;
+                diveInProgress = false;
 
                 syncDepthUI();
+                updateZone();
             }
         }
     }
-
-    if (diveButton) {
-
-        diveButton.addEventListener(
-            "click",
-            async event => {
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                await performDive();
-            }
-        );
-    }
-
     /* =========================================================
        RESET
     ========================================================= */
@@ -4350,31 +4404,64 @@ function initDashboard() {
         );
     }
 
-    /* =========================================================
-       RESIZE
-    ========================================================= */
+
+    /*RESPONSIVE RESIZE */
+
+    function handleResponsiveResize() {
+
+        const width =
+            window.innerWidth;
+
+        const height =
+            window.innerHeight;
+
+        if (!width || !height) {
+            return;
+        }
+
+        camera.aspect =
+            width / height;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            width,
+            height,
+            false
+        );
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio || 1,
+                2
+            )
+        );
+    }
 
     window.addEventListener(
         "resize",
+        handleResponsiveResize,
+        {
+            passive: true
+        }
+    );
+
+    /*
+     * Also handle orientation changes
+     * on phones/tablets.
+     */
+    window.addEventListener(
+        "orientationchange",
         () => {
 
-            camera.aspect =
-                window.innerWidth /
-                window.innerHeight;
-
-            camera.updateProjectionMatrix();
-
-            renderer.setSize(
-                window.innerWidth,
-                window.innerHeight
+            setTimeout(
+                handleResponsiveResize,
+                100
             );
 
-            renderer.setPixelRatio(
-                Math.min(
-                    window.devicePixelRatio,
-                    2
-                )
-            );
+        },
+        {
+            passive: true
         }
     );
 
